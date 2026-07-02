@@ -56,3 +56,9 @@ Keep the dev server up and running when making code changes. It will recompile o
 `package` files are for dependencies/packages I need to use in this project.
 
 `angular.json` is for extra settings for Angular CLI. Normally I don't need to do anything to it.
+
+Go into the project folder and run `npm install` to have all the dependencies. As long as it finishes without error, then it's good to go.
+
+Then, run `npm start` which will run `ng serve` from Angular CLI under the hood.
+
+Go to Local: http://localhost:4200/ in the browser.
