@@ -62,3 +62,76 @@ Go into the project folder and run `npm install` to have all the dependencies. A
 Then, run `npm start` which will run `ng serve` from Angular CLI under the hood.
 
 Go to Local: http://localhost:4200/ in the browser.
+
+Right click and select `view page source`, I can see:
+```
+<script src="polyfills.js" type="module"></script><script src="main.js" type="module"></script></body>
+```
+
+The `main.js` is acutally from `main.ts` which is compiled by the CLI tool:
+```ts
+// main.ts
+import { bootstrapApplication } from '@angular/platform-browser';
+
+import { AppComponent } from './app/app.component';
+
+bootstrapApplication(AppComponent).catch((err) => console.error(err));
+```
+
+The `AppComponent` is actually from `app.component.ts`. The imported path doesn't need to have `.ts` in the typescript file. This is a component which can been as a custome HTML element.
+
+```ts
+// app.component.ts
+@Component({
+  selector: 'app-root',
+  standalone: true,
+  imports: [],
+  templateUrl: './app.component.html',
+  styleUrl: './app.component.css',
+})
+export class AppComponent {}
+```
+
+`@Component` is called a decorator. It's a TypeScript feature which gives some metadata to the class `AppComponent`.
+
+The passed in configuration object has several properties. For example, `selector: 'app-root',` this tells Angular which HTML element can be replaced by this component and its markup. The markup of this component is stored in `templateUrl: './app.component.html',`.
+
+```html
+<!-- app.component.html -->
+<header>
+  <img src="assets/angular-logo.png" alt="The Angular logo: The letter 'A'" />
+  <h1>Let's get started!</h1>
+  <p>Time to learn all about Angular!</p>
+</header>
+```
+
+The `AppComponent` will then render in `index.html` at `<app-root></app-root>` line:
+```html
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Essentials</title>
+  <base href="/">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="icon" type="image/x-icon" href="favicon.ico">
+</head>
+<body>
+  <app-root></app-root>
+</body>
+</html>
+```
+
+#### Fixing `tsconfig.json`
+
+##### Add `"rootDir": "./src",` under `"outDir": "./dist/out-tsc",`
+
+TypeScript needs to know where your source files start, so it can build the correct folder structure inside the output folder. Without `rootDir`, TypeScript has to guess this from your files, and it warns you when the guess is not certain.
+
+Your source files live under `./src`. Setting `rootDir` to `./src` tells TypeScript this directly, so the warning goes away and the output folder structure stays correct.
+
+##### Update `"moduleResolution": "node",` to `"moduleResolution": "bundler",`
+
+The value `"node"` is being renamed to "node10", and it is marked as deprecated. It will stop working in TypeScript 7.0.
+
+Angular's build tool, starting from Angular CLI 17, uses esbuild. The `"bundler"` option matches how esbuild resolves modules, so it is the setting that fits your current build process. It also allows relative imports without file extensions, which matches your existing code style.
