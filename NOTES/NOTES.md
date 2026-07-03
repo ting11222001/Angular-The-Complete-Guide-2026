@@ -135,3 +135,68 @@ Your source files live under `./src`. Setting `rootDir` to `./src` tells TypeScr
 The value `"node"` is being renamed to "node10", and it is marked as deprecated. It will stop working in TypeScript 7.0.
 
 Angular's build tool, starting from Angular CLI 17, uses esbuild. The `"bundler"` option matches how esbuild resolves modules, so it is the setting that fits your current build process. It also allows relative imports without file extensions, which matches your existing code style.
+
+### Creating a First Custom Component
+
+Create `HeaderComponent`.
+
+If using Angular 19+ then I don't need to manually set `standalone: true,`.
+
+### Using the Custom Component
+
+To see the `HeaderComponent` on screen, I can't just add it to the `index.html` like this:
+```html
+<body>
+  <app-header></app-header>
+  <app-root></app-root>
+</body>
+```
+
+I need to add this here in `main.ts` too as Angular won't automatically scan all the files and register my components:
+```ts
+bootstrapApplication(HeaderComponent);
+``` 
+
+But eventually I should create a tree of components:
+```
+One Angular Application = One Component Tree
+```
+
+So I can just move `HeaderComponent` into the `AppComponent` like this:
+```html
+<!-- app.component.html -->
+<app-header></app-header>
+```
+
+And use `imports` array in the configuration of `@Component`:
+```ts
+// AppComponent
+import { Component } from '@angular/core';
+import { HeaderComponent } from './header.component';
+
+@Component({
+  selector: 'app-root',
+  standalone: true,
+  imports: [HeaderComponent],
+  templateUrl: './app.component.html',
+  styleUrl: './app.component.css',
+})
+export class AppComponent {}
+```
+
+And keep `index.html` as before:
+```html
+<body>
+  <app-root></app-root>
+</body>
+```
+
+And keep `main.ts` as before:
+```ts
+import { bootstrapApplication } from '@angular/platform-browser';
+import { AppComponent } from './app/app.component';
+
+bootstrapApplication(AppComponent).catch((err) => console.error(err));
+```
+
+### Styling the Header Component & Adding An Image
