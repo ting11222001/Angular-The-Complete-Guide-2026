@@ -200,3 +200,17 @@ bootstrapApplication(AppComponent).catch((err) => console.error(err));
 ```
 
 ### Styling the Header Component & Adding An Image
+
+Add `styleUrl` to the `@Component`.
+
+Also updated `styles.css`, `header.component.css` and `index.html` with the new font links.
+
+Note that in `angular.json` here it needs to specify where the images are:
+```json
+"assets": [
+    "src/favicon.ico",
+    "src/assets"
+],
+```
+
+### Managing & Creating Components with the Angular CLI
