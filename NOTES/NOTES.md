@@ -214,3 +214,81 @@ Note that in `angular.json` here it needs to specify where the images are:
 ```
 
 ### Managing & Creating Components with the Angular CLI
+
+Create a `header` folder under `app` to put in all the header component related files.
+
+Once moved, I can see `AppComponent`'s `HeaderComponent` import is updated:
+```ts
+import { HeaderComponent } from './header/header.component';
+```
+
+Then, use Angular CLI to create new component, `UserComponent`.
+
+```bash
+cd 01-starting-project
+ng g c user
+```
+
+It will automatically generate these files:
+```bash
+CREATE src/app/user/user.component.html (20 bytes)
+CREATE src/app/user/user.component.spec.ts (601 bytes)
+CREATE src/app/user/user.component.ts (238 bytes)
+CREATE src/app/user/user.component.css (0 bytes)
+```
+
+I can remove `spec.ts` file as it's for automated testing later.
+
+###  Styling & Using Our Next Custom Component
+
+Key things:
+
+- I can use self-closing tag like this:
+```html
+<app-header />
+```
+
+- Added `UserComponent` to `AppComponent`:
+```ts
+import { Component } from '@angular/core';
+import { HeaderComponent } from './header/header.component';
+import { UserComponent } from './user/user.component';
+
+@Component({
+  selector: 'app-root',
+  standalone: true,
+  imports: [HeaderComponent, UserComponent],
+  templateUrl: './app.component.html',
+  styleUrl: './app.component.css',
+})
+export class AppComponent {}
+```
+
+```html
+<!-- app.component.html -->
+<app-header />
+
+<main>
+    <ul id="users">
+        <li>
+            <app-user />
+        </li>
+    </ul>
+</main>
+```
+
+- Updated `UserComponent`'s structure:
+```html
+<div>
+    <button>
+        <img />
+        <span>NAME</span>
+    </button>
+</div>
+```
+
+### Preparing User Data (To Output Dynamic Content)
+
+Added a new `user` folder with images in `assets` folder. Also, `dummy-user.ts` in the `app` folder.
+
+### Storing Data in a Component Class
