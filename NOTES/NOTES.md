@@ -362,3 +362,41 @@ You still have decimals like 4.35. You need whole numbers. You have three roundi
 ```
 
 ### Property Binding & Outputting Computed Values
+
+Property Binding: wrap the property with square brackets and inside the quote there will be the value assigned to this property.
+
+E.g. in `<img>`:
+```html
+<div>
+    <button>
+        <img 
+        [src]="'assets/users/' + selectedUser.avatar"
+        [alt]="selectedUser.name" />
+        <span>{{ selectedUser.name }}</span>
+    </button>
+</div>
+```
+
+#### String interpolation vs property binding in Angular
+
+Both are common ways to display dynamic values in Angular.
+
+The short answer: use interpolation to show text, and use property binding to pass a real value.
+
+Use property binding when the value is not a string, or you are passing data to another component, or when setting values on a DOM element's property. 
+
+Example:
+```html
+<button [disabled]="isDisabled">Save</button>
+<app-profile [currentUser]="user"></app-profile>
+```
+
+Use interpolation when you want to display text content between tags. 
+
+Example:
+```html
+<h1>Hello {{ userName }}</h1>
+<p>You have {{ count }} messages</p>
+```
+
+### Using Getters For Computed Values
