@@ -400,3 +400,47 @@ Example:
 ```
 
 ### Using Getters For Computed Values
+
+Replace this in `user.component.html`:
+```html
+[src]="'assets/users/' + selectedUser.avatar"
+```
+
+with this:
+```html
+[src]="imagePath"
+```
+
+by adding `getter` in `user.component.ts`:
+```ts
+@Component({
+  selector: 'app-user',
+  standalone: true,
+  imports: [],
+  templateUrl: './user.component.html',
+  styleUrl: './user.component.css'
+})
+export class UserComponent {
+  selectedUser = DUMMY_USERS[randomUserIndex];
+
+  get imagePath() {
+    return 'assets/users/' + this.selectedUser.avatar;
+  }
+}
+
+```
+
+so the `getter` method is just a function, and in JavaScript, I need to use `this` to access the property of the class.
+
+
+This way the template is cleaner:
+```html
+<div>
+    <button>
+        <img 
+        [src]="imagePath"
+        [alt]="selectedUser.name" />
+        <span>{{ selectedUser.name }}</span>
+    </button>
+</div>
+```
