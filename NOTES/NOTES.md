@@ -485,3 +485,34 @@ export class UserComponent {
 Go to the browser, and open the Console from the dev tool - the 'Clicked!' should be printed whenever the button is clicked.
 
 ### Managing State & Changing Data
+
+Now, instead of outputting the value to the console, let's update the UI.
+
+Use `state` when the data has an impact on the UI.
+
+For example, the user info displayed in the button should be updated whenever the button is clicked.
+
+The most simple way of doing it is by simply updating the value of `selectedUser` like the below:
+```ts
+const randomUserIndex = Math.floor(Math.random() * DUMMY_USERS.length);
+
+@Component({
+  selector: 'app-user',
+  standalone: true,
+  imports: [],
+  templateUrl: './user.component.html',
+  styleUrl: './user.component.css'
+})
+export class UserComponent {
+  selectedUser = DUMMY_USERS[randomUserIndex];
+
+  get imagePath() {
+    return 'assets/users/' + this.selectedUser.avatar;
+  }
+
+  onSelectUser() {
+    const randomUserIndex = Math.floor(Math.random() * DUMMY_USERS.length);
+    this.selectedUser = DUMMY_USERS[randomUserIndex];
+  }
+}
+```

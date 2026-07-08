@@ -18,6 +18,7 @@ export class UserComponent {
   }
 
   onSelectUser() {
-    console.log('Clicked!');
+    const randomUserIndex = Math.floor(Math.random() * DUMMY_USERS.length);
+    this.selectedUser = DUMMY_USERS[randomUserIndex];
   }
 }
