@@ -432,7 +432,6 @@ export class UserComponent {
 
 so the `getter` method is just a function, and in JavaScript, I need to use `this` to access the property of the class.
 
-
 This way the template is cleaner:
 ```html
 <div>
@@ -444,3 +443,45 @@ This way the template is cleaner:
     </button>
 </div>
 ```
+
+### Listening to Events with Event Binding
+
+Adding an event listener to an element e.g. `(click)` to the `button`:
+```html
+<div>
+    <button (click)="onSelectUser()">
+        <img 
+        [src]="imagePath"
+        [alt]="selectedUser.name" />
+        <span>{{ selectedUser.name }}</span>
+    </button>
+</div>
+```
+
+Then, add a method to be called/executed upon some event using the `on` prefix, e.g. `onSelectUser`
+```ts
+const randomUserIndex = Math.floor(Math.random() * DUMMY_USERS.length);
+
+@Component({
+  selector: 'app-user',
+  standalone: true,
+  imports: [],
+  templateUrl: './user.component.html',
+  styleUrl: './user.component.css'
+})
+export class UserComponent {
+  selectedUser = DUMMY_USERS[randomUserIndex];
+
+  get imagePath() {
+    return 'assets/users/' + this.selectedUser.avatar;
+  }
+
+  onSelectUser() {
+    console.log('Clicked!');
+  }
+}
+```
+
+Go to the browser, and open the Console from the dev tool - the 'Clicked!' should be printed whenever the button is clicked.
+
+### Managing State & Changing Data
