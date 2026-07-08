@@ -531,3 +531,96 @@ That's the reason why I can just re-assign the value of a property and Angular w
 ```
 
 ### Introducing Signals
+
+Supported since Angular 16.
+
+Import signal from angular/core.
+
+Store the signal in a property of a component.
+
+Replace the `selectedUser` with a signal.
+
+Signal is an object that stores a value (an initial value). Angular manages subscriptions to the signal to get notified about value changes.
+
+Signals are trackable data containers. It notifies Angular when its value is changed so then Angular can update the UI accordingly.
+
+Use `set()` to update the signal in `onSelectedUser()`.
+
+The `user.component.ts` is now like this:
+```ts
+import { Component, signal } from '@angular/core';
+export class UserComponent {
+  selectedUser = signal(DUMMY_USERS[randomUserIndex]);
+  
+  onSelectUser() {
+    const randomUserIndex = Math.floor(Math.random() * DUMMY_USERS.length);
+    this.selectedUser.set(DUMMY_USERS[randomUserIndex]);
+  }
+}
+```
+
+Then, call the signal value as a function in the template:
+```html
+<div>
+    <button (click)="onSelectUser()">
+        <img 
+        [src]="imagePath"
+        [alt]="selectedUser().name" />
+        <span>{{ selectedUser().name }}</span>
+    </button>
+</div>
+```
+
+In summary, using signals is more efficient than the old zone.js way.
+
+Another thing worth noted - so the computed value, `imagePath`, should be replaced as the below. Use `computed()` from the `angular/core`, and it takes in a function as an argument:
+```ts
+// old
+get imagePath() {
+  return 'assets/users/' + this.selectedUser.avatar;
+}
+// new
+imagePath = computed(() => 'assets/users/' + this.selectedUser().avatar);
+```
+
+The idea is that Angular sets up a subscription that tracks the signals read inside the `computed` function. Angular only re-computes `imagePath` when `selectedUser` changes, because `selectedUser()` is the only signal read in that computed function.
+
+So the final UserComponent till now is like this:
+```ts
+import { Component, computed, signal } from '@angular/core';
+import { DUMMY_USERS }  from '../dummy-users';
+
+const randomUserIndex = Math.floor(Math.random() * DUMMY_USERS.length);
+
+@Component({
+  selector: 'app-user',
+  standalone: true,
+  imports: [],
+  templateUrl: './user.component.html',
+  styleUrl: './user.component.css'
+})
+export class UserComponent {
+  selectedUser = signal(DUMMY_USERS[randomUserIndex]);
+  imagePath = computed(() => 'assets/users/' + this.selectedUser().avatar);
+
+  onSelectUser() {
+    const randomUserIndex = Math.floor(Math.random() * DUMMY_USERS.length);
+    this.selectedUser.set(DUMMY_USERS[randomUserIndex]);
+  }
+}
+```
+
+In the template, make sure I "execute" this computed property at `[src]="imagePath()"` for `img` as under the hood the computed function actually creates a signal:
+```html
+<div>
+    <button (click)="onSelectUser()">
+        <img 
+        [src]="imagePath()"
+        [alt]="selectedUser().name" />
+        <span>{{ selectedUser().name }}</span>
+    </button>
+</div>
+```
+
+I can double check by hovering over `imagePath` in the `UserComponent`, it will show `Signal<String>`.
+
