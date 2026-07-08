@@ -511,8 +511,23 @@ export class UserComponent {
   }
 
   onSelectUser() {
+    // Recompute randomUserIndex here, because the class field above only runs once when the component is first created.
     const randomUserIndex = Math.floor(Math.random() * DUMMY_USERS.length);
     this.selectedUser = DUMMY_USERS[randomUserIndex];
   }
 }
 ```
+
+### A Look Behind The Scenes Of Angular's Change Detection Mechanism
+
+Under the hood Angular is using `zone.js` to detect changes. It listens to all the possible user events on the screen of a website.
+
+That's the reason why I can just re-assign the value of a property and Angular will update the UI automatically:
+```ts
+  onSelectUser() {
+    const randomUserIndex = Math.floor(Math.random() * DUMMY_USERS.length);
+    this.selectedUser = DUMMY_USERS[randomUserIndex];
+  }
+```
+
+### Introducing Signals
