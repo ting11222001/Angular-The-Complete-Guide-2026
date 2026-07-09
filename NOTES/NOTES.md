@@ -877,4 +877,93 @@ export class UserComponent {
 </div>
 ```
 
-### We Need Custom Events!
+### We Need Custom Events! Working with Outputs & Emitting Data
+
+For example, I can pass the selected user's `id` from the `UserComponent` back to the `AppComponent` by `EventEmitter()`, which is stored in `select`.
+```ts
+import { Component, computed, EventEmitter, input, Input, Output } from '@angular/core';
+
+@Component({
+  selector: 'app-user',
+  standalone: true,
+  imports: [],
+  templateUrl: './user.component.html',
+  styleUrl: './user.component.css'
+})
+export class UserComponent {
+  @Input({required: true}) avatar!: string;
+  @Input({required: true}) name!: string;
+  @Input({required: true}) id!: string;
+  @Output() select = new EventEmitter(); // (select) in the parent template i.e. AppComponent must match @Output() select.
+
+  get imagePath() {
+    return 'assets/users/' + this.avatar;
+  }
+
+  onSelectUser() {
+    this.select.emit(this.id);
+  }
+}
+```
+
+Whereas the `UserComponent` template remains the same:
+```html
+<div>
+    <button (click)="onSelectUser()">
+        <img 
+        [src]="imagePath"
+        [alt]="name" />
+        <span>{{ name }}</span>
+    </button>
+</div>
+```
+
+For the `AppComponent` to listen to that event from `UserComponent`, add `(select)` in the `AppComponent` template:
+```html
+<app-header />
+
+<main>
+  <ul id="users">
+    <li>
+      <app-user [id]="users[0].id" [avatar]="users[0].avatar" [name]="users[0].name" (select)="onSelectUser($event)" />
+    </li>
+    <li>
+      <app-user [id]="users[1].id" [avatar]="users[1].avatar" [name]="users[1].name" (select)="onSelectUser($event)" />
+    </li>
+    <li>
+      <app-user [id]="users[2].id" [avatar]="users[2].avatar" [name]="users[2].name" (select)="onSelectUser($event)" />
+    </li>
+    <li>
+      <app-user [id]="users[3].id" [avatar]="users[3].avatar" [name]="users[3].name" (select)="onSelectUser($event)" />
+    </li>
+  </ul>
+</main>
+```
+
+And `(select)` will call the `onSelectUser()` function in `AppComponent`:
+```ts
+import { Component } from '@angular/core';
+import { HeaderComponent } from './header/header.component';
+import { UserComponent } from './user/user.component';
+import { DUMMY_USERS }  from './dummy-users';
+
+@Component({
+  selector: 'app-root',
+  standalone: true,
+  imports: [HeaderComponent, UserComponent],
+  templateUrl: './app.component.html',
+  styleUrl: './app.component.css',
+})
+export class AppComponent {
+  users = DUMMY_USERS;
+
+  onSelectUser(id: string) {
+    console.log('Selected user with id: ' + id);
+  }
+}
+```
+
+`$event` is the object that will hold the data/value that was emitted by the event I'm listening to.
+
+
+Now when I click on a User button e.g. the first user button, the dev tool console will print `Selected user with id: u1`.
