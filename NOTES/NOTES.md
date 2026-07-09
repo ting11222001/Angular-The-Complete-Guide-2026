@@ -762,3 +762,36 @@ Finally, make sure `UserComponent` template replaced all the signals and compute
 ```
 
 I now get a list of users on the screen and every user outputs some different data.
+
+### Required & Optional Inputs
+
+Use this required configuration object with the `@Input` i.e. `@Input({required: true})` to align with what I tell TypeScript so that a name or avatar of a user won't be missing in the `AppComponent`:
+```ts
+import { Component, Input } from '@angular/core';
+
+@Component({
+  selector: 'app-user',
+  standalone: true,
+  imports: [],
+  templateUrl: './user.component.html',
+  styleUrl: './user.component.css'
+})
+export class UserComponent {
+  @Input({required: true}) avatar!: string;
+  @Input({required: true}) name!: string;
+
+  get imagePath() {
+    return 'assets/users/' + this.avatar;
+  }
+
+  onSelectUser() {
+  }
+}
+```
+
+E.g. If a `name` is missing in the `AppComponent` template, there will be a warning:
+```html
+<!-- AppComponent template -->
+<!-- Warning: Required input 'name' from component UserComponent must be specified. -->
+<app-user [avatar]="users[3].avatar" />
+```
