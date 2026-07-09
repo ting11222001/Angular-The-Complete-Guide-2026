@@ -795,3 +795,86 @@ E.g. If a `name` is missing in the `AppComponent` template, there will be a warn
 <!-- Warning: Required input 'name' from component UserComponent must be specified. -->
 <app-user [avatar]="users[3].avatar" />
 ```
+
+### Using Signal Inputs
+
+I can also use signals to accept inputs.
+
+Use `input` which is a special function (which is different from `Input` which is a decorator).
+
+In the `input` function, I can set an initial value. I can use this angle bracket syntax, `<>`, to set the type of value this `input` function will receive. It's a TypeScript thing called `generic type`. When we see `input<T>`, `T` means `type placeholder`.
+
+Hover over `avatar` it will show that it will produce a Input Signal which will eventually have a string value.
+
+Then, I can make this input signal into required using `input.required()`. Then, with `<>`, I tell it about the type e.g. `input.required<string>()`. By using `input` we're setting values to the `name` and `avatar` properties, so I don't need to worry about telling TypeScript about `!`. I can change `imagePath` back to a computed value.
+
+```ts
+import { Component, computed, input } from '@angular/core';
+
+@Component({
+  selector: 'app-user',
+  standalone: true,
+  imports: [],
+  templateUrl: './user.component.html',
+  styleUrl: './user.component.css'
+})
+export class UserComponent {
+  avatar = input.required<string>();
+  name = input.required<string>();
+
+  imagePath = computed(() => 'assets/users/' + this.avatar());
+
+  onSelectUser() {
+  }
+}
+```
+
+Also update the UserComponent template by calling signal function on `name`. Same for `imagePath`.
+```html
+ <div>
+    <button (click)="onSelectUser()">
+        <img 
+        [src]="imagePath()"
+        [alt]="name()" />
+        <span>{{ name() }}</span>
+    </button>
+</div>
+```
+
+But to continue to current section the tutorial just change back to use `@Input` for now. Later in the course there will be more signals usage.
+
+```ts
+import { Component, Input } from '@angular/core';
+
+@Component({
+  selector: 'app-user',
+  standalone: true,
+  imports: [],
+  templateUrl: './user.component.html',
+  styleUrl: './user.component.css'
+})
+export class UserComponent {
+  @Input({required: true}) avatar!: string;
+  @Input({required: true}) name!: string;
+
+  get imagePath() {
+    return 'assets/users/' + this.avatar;
+  }
+
+  onSelectUser() {
+  }
+}
+```
+
+```html
+<div>
+    <button (click)="onSelectUser()">
+        <img 
+        [src]="imagePath"
+        [alt]="name" />
+        <span>{{ name }}</span>
+    </button>
+</div>
+```
+
+### We Need Custom Events!
