@@ -624,3 +624,141 @@ In the template, make sure I "execute" this computed property at `[src]="imagePa
 
 I can double check by hovering over `imagePath` in the `UserComponent`, it will show `Signal<String>`.
 
+### We Need More Flexible Components!
+
+Instead of allowing UserComponent to set the `randomUserIndex`, I make it configurable i.e. expose properties that can be fed with data from the `AppComponent` level, so I can use the components but with different data.
+
+Current if I do this then all the userComponent will start with the same users:
+```ts
+import { Component, computed, signal } from '@angular/core';
+import { DUMMY_USERS }  from '../dummy-users';
+
+const randomUserIndex = Math.floor(Math.random() * DUMMY_USERS.length);
+
+@Component({
+  selector: 'app-user',
+  standalone: true,
+  imports: [],
+  templateUrl: './user.component.html',
+  styleUrl: './user.component.css'
+})
+export class UserComponent {
+  selectedUser = signal(DUMMY_USERS[randomUserIndex]);
+  imagePath = computed(() => 'assets/users/' + this.selectedUser().avatar);
+
+  onSelectUser() {
+    const randomUserIndex = Math.floor(Math.random() * DUMMY_USERS.length);
+    this.selectedUser.set(DUMMY_USERS[randomUserIndex]);
+  }
+}
+```
+
+Why?
+- The line that picks the random index sits outside the class, at the top of the file.
+```ts
+const randomUserIndex = Math.floor(Math.random() * DUMMY_USERS.length);  // module scope
+```
+Code at that level runs once, when the file is first imported by the browser. It does not run again each time Angular creates a `UserComponent`. So `Math.random()` is called a single time, the result is frozen into that const, and every instance later reads the same frozen number.
+
+```html
+<!-- AppComponent -->
+<app-header />
+
+<main>
+    <ul id="users">
+        <li>
+            <app-user />
+        </li>
+        <li>
+            <app-user />
+        </li>
+        <li>
+            <app-user />
+        </li>
+        <li>
+            <app-user />
+        </li>
+    </ul>
+</main>
+```
+
+### Defining Component Inputs
+
+Create configurable properties using `@Input` in `UserComponent`:
+```ts
+import { Component, Input } from '@angular/core';
+
+@Component({
+  selector: 'app-user',
+  standalone: true,
+  imports: [],
+  templateUrl: './user.component.html',
+  styleUrl: './user.component.css'
+})
+export class UserComponent {
+  @Input() avatar!: string; // the ! is TypeScript's way of promising this property will always have a value
+  @Input() name!: string;
+
+  get imagePath() {
+    return 'assets/users/' + this.avatar; // using getter here as I'm not using signals in the image path anymore
+  }
+
+  onSelectUser() {
+  }
+}
+```
+
+And in `AppComponent` I need to create a property called `users` to have access to the dummy user data:
+```ts
+import { Component } from '@angular/core';
+import { HeaderComponent } from './header/header.component';
+import { UserComponent } from './user/user.component';
+import { DUMMY_USERS }  from './dummy-users';
+
+@Component({
+  selector: 'app-root',
+  standalone: true,
+  imports: [HeaderComponent, UserComponent],
+  templateUrl: './app.component.html',
+  styleUrl: './app.component.css',
+})
+export class AppComponent {
+  users = DUMMY_USERS;
+}
+```
+
+So in the `AppComponent` template I can pass in the data from `AppComponent` into `UserComponent`:
+```html
+<app-header />
+
+<main>
+    <ul id="users">
+        <li>
+            <app-user [avatar]="users[0].avatar" [name]="users[0].name" />
+        </li>
+        <li>
+            <app-user [avatar]="users[1].avatar" [name]="users[1].name" />
+        </li>
+        <li>
+            <app-user [avatar]="users[2].avatar" [name]="users[2].name" />
+        </li>
+        <li>
+            <app-user [avatar]="users[3].avatar" [name]="users[3].name" />
+        </li>
+    </ul>
+</main>
+```
+
+Finally, make sure `UserComponent` template replaced all the signals and computed value functions:
+```html
+<div>
+    <button (click)="onSelectUser()">
+        <img 
+        [src]="imagePath"
+        [alt]="name" />
+        <span>{{ name }}</span>
+    </button>
+</div>
+```
+
+I now get a list of users on the screen and every user outputs some different data.
