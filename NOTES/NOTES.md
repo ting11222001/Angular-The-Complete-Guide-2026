@@ -963,7 +963,44 @@ export class AppComponent {
 }
 ```
 
-`$event` is the object that will hold the data/value that was emitted by the event I'm listening to.
+`$event` is a special object provided by Angular and that will hold the data/value that was emitted by the event I'm listening to.
 
 
 Now when I click on a User button e.g. the first user button, the dev tool console will print `Selected user with id: u1`.
+
+### Using the `output()` Function
+
+`@Output` might feel like acting same as `output()`, but `output()` is newer, safer and cleaner.
+
+The reason why `output()` exists is that:
+- Once inputs became `input()`, keeping `@Output()` would look odd. It would be weird to have inputs with `input()` and outputs with `@Output()`. The new signal-based authoring format is characterised by the absence of decorators. Mixing decorators and functions in one class is noise.
+- `output()` is type safe on `emit()`, cleans up on destroy, and drops the RxJS baggage (as `EventEmitter` extends an RxJS Subject). The old `EventEmitter.emit()` with `@Output` let you emit nothing when a value was required. `output()` catches this at compile time.
+
+Also,  `output()` gives `OutputEmitterRef`, not a signal.
+
+So these will work the same in this tutorial:
+```ts
+// old
+import { Component, EventEmitter, Output } from '@angular/core';
+
+export class UserComponent {
+  @Output() select = new EventEmitter();
+
+  onSelectUser() {
+    this.select.emit(this.id);
+  }
+}
+
+// new
+import { Component, output } from '@angular/core';
+
+export class UserComponent {
+  select = output<string>(); // select is OutputEmitterRef<string>, if I hover over it
+
+  onSelectUser() {
+    this.select.emit(this.id);
+  }
+}
+```
+
+Later the tutorial is still using `@Output` as it was not common to see `output()` back then.
