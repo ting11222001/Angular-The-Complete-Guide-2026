@@ -1049,8 +1049,9 @@ import { TasksComponent } from './tasks/tasks.component';
 })
 export class AppComponent {
   users = DUMMY_USERS;
-  selectedUserId = '';
+  selectedUserId = 'u1';
 
+  //  The get in your code is a plain TypeScript getter that reruns every time, not a computed signal that caches its result.
   get selectedUser() {
     return this.users.find(user => user.id === this.selectedUserId)!; 
     // The ! is the non-null assertion operator. It tells TypeScript: "trust me, this value is not null and not undefined."
@@ -1106,3 +1107,7 @@ TasksComponent's html:
 ```html
 <p>{{ name }}</p>
 ```
+
+I guess eventually I can change everything into signals
+
+### TypeScript: Working With Potentially Undefined Values & Union Types
