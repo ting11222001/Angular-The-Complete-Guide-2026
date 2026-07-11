@@ -1004,3 +1004,18 @@ export class UserComponent {
 ```
 
 Later the tutorial is still using `@Output` as it was not common to see `output()` back then.
+
+### Adding Extra Type Information To EventEmitter
+
+Adding type here for extra safety when using `@Output`:
+```ts
+import { Component, EventEmitter, Output } from '@angular/core';
+
+export class UserComponent {
+  @Output() select = new EventEmitter<string>();
+
+  onSelectUser() {
+    this.select.emit(this.id);
+  }
+}
+```
