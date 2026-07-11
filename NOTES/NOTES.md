@@ -1019,3 +1019,90 @@ export class UserComponent {
   }
 }
 ```
+
+### Exercise: Create a Configurable Component
+
+In the project folder run this to create a new component and its other files and skip the .spec.ts file:
+```bash
+ng g c tasks --skip-tests
+```
+
+DUMMY-USERS data is flowing downwards from AppComponent into UserComponent and TaskComponent.
+
+UserComponent button emit its id back to AppComponent. UserComponent got its id from AppComponent at first.
+
+TaskComponent got the selected user name based on the selected user id stored in AppComponent.
+
+```ts
+import { Component } from '@angular/core';
+import { HeaderComponent } from './header/header.component';
+import { UserComponent } from './user/user.component';
+import { DUMMY_USERS }  from './dummy-users';
+import { TasksComponent } from './tasks/tasks.component';
+
+@Component({
+  selector: 'app-root',
+  standalone: true,
+  imports: [HeaderComponent, UserComponent, TasksComponent],
+  templateUrl: './app.component.html',
+  styleUrl: './app.component.css',
+})
+export class AppComponent {
+  users = DUMMY_USERS;
+  selectedUserId = '';
+
+  get selectedUser() {
+    return this.users.find(user => user.id === this.selectedUserId)!; 
+    // The ! is the non-null assertion operator. It tells TypeScript: "trust me, this value is not null and not undefined."
+  }
+
+  onSelectUser(id: string) {
+    this.selectedUserId = id;
+  }
+}
+```
+
+AppComponent's html:
+```html
+<app-header />
+
+<main>
+  <ul id="users">
+    <li>
+      <app-user [id]="users[0].id" [avatar]="users[0].avatar" [name]="users[0].name" (select)="onSelectUser($event)" />
+    </li>
+    <li>
+      <app-user [id]="users[1].id" [avatar]="users[1].avatar" [name]="users[1].name" (select)="onSelectUser($event)" />
+    </li>
+    <li>
+      <app-user [id]="users[2].id" [avatar]="users[2].avatar" [name]="users[2].name" (select)="onSelectUser($event)" />
+    </li>
+    <li>
+      <app-user [id]="users[3].id" [avatar]="users[3].avatar" [name]="users[3].name" (select)="onSelectUser($event)" />
+    </li>
+  </ul>
+
+  <app-tasks [name]="selectedUser.name"/>
+</main>
+```
+
+TasksComponent only needs to add `name` as a dynamic input property:
+```ts
+import { Component, Input } from '@angular/core';
+
+@Component({
+  selector: 'app-tasks',
+  standalone: true,
+  imports: [],
+  templateUrl: './tasks.component.html',
+  styleUrl: './tasks.component.css'
+})
+export class TasksComponent {
+  @Input({required: true}) name!: string;
+}
+```
+
+TasksComponent's html:
+```html
+<p>{{ name }}</p>
+```
