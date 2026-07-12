@@ -1159,3 +1159,61 @@ export class TasksComponent {
 ```
 
 ### Accepting Objects As Inputs & Adding Appropriate Typings
+
+Now in `TasksComponent`, I'm using `?`:
+```ts
+export class TasksComponent {
+  @Input() name?: string;
+}
+```
+
+And it will show this when I hover over it:
+```
+(property) TasksComponent.name?: string | undefined
+```
+
+In `UserComponent` I'm simplifying the input properties as this:
+```ts
+// old
+export class UserComponent {
+  @Input({required: true}) avatar!: string;
+  @Input({required: true}) name!: string;
+  @Input({required: true}) id!: string;
+  ...
+}
+
+// new
+export class UserComponent {
+  @Input({required: true}) user!: {
+    id: string;
+    name: string;
+    avatar: string;
+  };
+  @Output() select = new EventEmitter<string>();
+
+  get imagePath() {
+    return 'assets/users/' + this.user.avatar;
+  }
+
+  onSelectUser() {
+    this.select.emit(this.user.id);
+  }
+}
+```
+
+And update `UserComponent`'s template accordingly:
+```html
+<div>
+    <button (click)="onSelectUser()">
+        <img 
+        [src]="imagePath"
+        [alt]="user.name" />
+        <span>{{ user.name }}</span>
+    </button>
+</div>
+```
+
+And update `AppComponent`'s template accordingly - instead of passing `id`, `name`, `avatar`, now I can just pass in `user`:
+```html
+<app-user [user]="users[0]" (select)="onSelectUser($event)" />
+```
