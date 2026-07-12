@@ -1111,3 +1111,51 @@ TasksComponent's html:
 I guess eventually I can change everything into signals
 
 ### TypeScript: Working With Potentially Undefined Values & Union Types
+
+In `AppComponent`, I'm using `!` to tell TypeScript that there will be a value for `selectedUser`.
+
+If I remove the `!` in the `.find()` in the `get selectedUser()`, in `AppComponent`'s template here it will complain `Object is possibly 'undefined'.`:
+```html
+<app-tasks [name]="selectedUser.name"/>
+```
+
+To solve that I can just add `?` in the template to tell it that when `selectedUser` is undefined use an empty string:
+```ts
+// new
+export class AppComponent {
+  users = DUMMY_USERS;
+  selectedUserId = 'u1';
+
+  get selectedUser() {
+    return this.users.find(user => user.id === this.selectedUserId); // removed `!`
+  }
+  ...
+}
+```
+
+If I allow this in the `TaskComponent` like adding `?` to the `name` property, which means the value might not be initialised yet and that's ok:
+```ts
+// new
+export class TasksComponent {
+  @Input() name?: string; // replaced `!` with `?`
+}
+```
+
+Then, the new `AppComponent`'s template will be:
+```html
+<app-tasks [name]="selectedUser ? selectedUser.name : ''"/>
+```
+
+or this:
+```html
+<app-tasks [name]="selectedUser?.name"/>
+```
+
+Or I can just allow `undefined` type to the `name` in the `TaskComponent` by using `|` which is an union type  operator:
+```ts
+export class TasksComponent {
+  @Input() name: string | undefined; // it's the same when I use: @Input() name?: string;
+}
+```
+
+### Accepting Objects As Inputs & Adding Appropriate Typings
