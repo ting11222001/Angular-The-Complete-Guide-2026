@@ -1217,3 +1217,52 @@ And update `AppComponent`'s template accordingly - instead of passing `id`, `nam
 ```html
 <app-user [user]="users[0]" (select)="onSelectUser($event)" />
 ```
+
+### TypeScript: Type Aliases & Interfaces
+
+Use TypeScript to create type alias to make the code cleaner for the `user` property in `UserComponent`.
+
+I can use either `type` or `interface` to define the type of an object e.g. `User`.
+
+The key difference is that `interface` can only be used to define the object type, but `type` can be used for other types.
+
+`UserComponent` and `type`:
+```ts
+// old
+export class UserComponent {
+  @Input({required: true}) user!: {
+    id: string;
+    name: string;
+    avatar: string;
+  };
+  ...
+}
+
+// new
+type User = {
+  id: string;
+  name: string;
+  avatar: string;
+};
+
+export class UserComponent {
+  @Input({required: true}) user!: User;
+  ...
+}
+```
+
+`UserComponent` and `interface`:
+```ts
+// new
+interface User {
+  id: string;
+  name: string;
+  avatar: string;
+};
+
+
+export class UserComponent {
+  @Input({required: true}) user!: User;
+  ...
+}
+```
