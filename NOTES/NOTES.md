@@ -1301,3 +1301,32 @@ To this:
 ```
 
 What is `track` expression: `track` is used by Angular to use that user id to every list item it outputs so that every list item has a different id.
+
+### Outputting Conditional Content
+
+I want to render the `task` component in the `AppComponent` only when there's a selected User.
+
+So if I update `selectedUserId` like this in the `AppComponent`:
+```ts
+export class AppComponent {
+  users = DUMMY_USERS;
+  selectedUserId?: string;
+  ...
+}
+```
+
+In the `AppComponent`'s template I can change from this:
+```html
+<app-tasks [name]="selectedUser ? selectedUser.name : ''"/>
+```
+
+To this to conditionally render by using `@if` and `@else` for fallback:
+```html
+@if(selectedUser) {
+    <app-tasks [name]="selectedUser.name"/>  
+} @else {
+  <p>Select a user to see their tasks!</p>
+}
+```
+
+I don't need the `?` operator for `selectedUser.name` anymore as there will be `selectedUser` in the `if` block.
