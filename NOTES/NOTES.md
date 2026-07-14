@@ -1266,3 +1266,38 @@ export class UserComponent {
   ...
 }
 ```
+
+### Outputting List Content
+
+Use `@for` in the `AppComponent`'s template to dynamically output the users.
+
+From this:
+```html
+<ul id="users">
+  <li>
+    <app-user [user]="users[0]" (select)="onSelectUser($event)" />
+  </li>
+  <li>
+    <app-user [user]="users[1]" (select)="onSelectUser($event)" />
+  </li>
+  <li>
+    <app-user [user]="users[2]" (select)="onSelectUser($event)" />
+  </li>
+  <li>
+    <app-user [user]="users[3]" (select)="onSelectUser($event)" />
+  </li>
+</ul>
+```
+
+To this:
+```html
+<ul id="users">
+  @for(user of users; track user.id) {
+    <li>
+      <app-user [user]="user" (select)="onSelectUser($event)" />
+    </li>
+  }
+</ul>
+```
+
+What is `track` expression: `track` is used by Angular to use that user id to every list item it outputs so that every list item has a different id.
