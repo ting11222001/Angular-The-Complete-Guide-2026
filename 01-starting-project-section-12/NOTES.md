@@ -29,3 +29,41 @@ This section is to practice to reach out to the backend from Angular app.
 Run up the angular app by `npm start` in the main project folder of this section. I'm able to see this:
 
 ![Project12-screenshot1](/01-starting-project-section-12/section12-demo/Project-12-2026-09-09-1.png)
+
+## Connecting Angular apps to a Backend
+
+I basically have to send http requests inside the angular app to the backend api, either to fetch some data or to store some data there.
+
+Then the api will send a response with the requested data.
+
+For example, in `app.js`, there is a GET method:
+
+```js
+app.get("/places", async (req, res) => {
+  await new Promise((resolve) => setTimeout(resolve, 3000));
+
+  const fileContent = await fs.readFile("./data/places.json");
+
+  const placesData = JSON.parse(fileContent);
+
+  res.status(200).json({ places: placesData }); // here's the response!
+});
+```
+
+It will get data from `places.json` here:
+
+```json
+[
+  {
+    "id": "p1",
+    "title": "Forest Waterfall",
+    "image": {
+      "src": "forest-waterfall.jpg",
+      "alt": "A tranquil forest with a cascading waterfall amidst greenery."
+    },
+    "lat": 44.5588,
+    "lon": -80.344
+  },
+  ...
+]
+```
