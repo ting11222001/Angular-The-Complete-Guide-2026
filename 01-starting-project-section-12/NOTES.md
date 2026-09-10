@@ -67,3 +67,39 @@ It will get data from `places.json` here:
   ...
 ]
 ```
+
+## Getting Started with Angular's HTTP Client
+
+How do I send HTTP requests in angular applications?
+
+In `AvailablePlacesComponent`, use this `HttpClient` service:
+
+```ts
+import { HttpClient } from '@angular/common/http';
+
+export class AvailablePlacesComponent {
+  places = signal<Place[] | undefined>(undefined);
+  private httpClient = inject(HttpClient); // added!
+}
+```
+
+Remember! I need to set up a provider for this `HttpClient` service so that Angular will know how to inject this service, or it will show this error in the `localhost:4200`:
+
+```
+core.mjs:7195 ERROR NullInjectorError: R3InjectorError(Environment Injector)[_HttpClient -> _HttpClient]: 
+  NullInjectorError: No provider for _HttpClient!
+```
+
+And to make it available for the entire app, add the provider in the `main.ts`.
+
+```ts
+import { provideHttpClient } from '@angular/common/http';
+
+bootstrapApplication(AppComponent, {
+    providers: [
+        provideHttpClient(), // added!
+    ]
+}).catch((err) => console.error(err));
+```
+
+Once the Http Client Provider is added the `NullInjectorError` disappears!
