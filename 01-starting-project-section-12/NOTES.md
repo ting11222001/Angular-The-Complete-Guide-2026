@@ -370,3 +370,94 @@ The output of `console.log(response.places)` is like this:
     ...
 ]
 ```
+
+## Transforming & Using Response Data
+
+Once the `response` data is available, I use it to set the signal, `places`:
+
+```ts
+export class AvailablePlacesComponent implements OnInit{
+  places = signal<Place[] | undefined>(undefined);
+  private httpClient = inject(HttpClient);
+  private destroyRef = inject(DestroyRef);
+
+  ngOnInit(): void {
+    const subscription = this.httpClient.get<{ places: Place[] }>('http://localhost:3000/places')
+      .subscribe({
+        next: response => {
+          this.places.set(response.places); // updated!
+        }
+      });
+
+    this.destroyRef.onDestroy(() => {
+      subscription.unsubscribe();
+    });
+  }
+}
+```
+
+Since the `get()` is giving me an observable, I can use `pipe` before we `subscribe` to add an OPERATOR so that I can transform the data that's emitted by the observable BEFORE it reaches the `next` function.
+
+For example, I can use the `map` operator as the param of the `pipe` function. And then pass a function to the `map` operator.
+
+The `map` operator will take this one emitted value, `response`, and make the `response` into just the array i.e. `Place[]`, not the original `places` object i.e. `{ places: Place[] }`.
+
+So the `response` becomes just the `places`:
+
+```ts
+export class AvailablePlacesComponent implements OnInit{
+  places = signal<Place[] | undefined>(undefined);
+  private httpClient = inject(HttpClient);
+  private destroyRef = inject(DestroyRef);
+
+  ngOnInit(): void {
+    const subscription = this.httpClient.get<{ places: Place[] }>('http://localhost:3000/places')
+      .pipe(
+        map(response => response.places) // added!
+      )
+      .subscribe({
+        next: places => {           // updated!
+            console.log(places);
+            this.places.set(places);
+        }
+      });
+
+    this.destroyRef.onDestroy(() => {
+      subscription.unsubscribe();
+    });
+  }
+}
+```
+
+The output of `console.log(places);` directly becomes:
+
+```
+[
+    {
+        "id": "p1",
+        "title": "Forest Waterfall",
+        "image": {
+            "src": "forest-waterfall.jpg",
+            "alt": "A tranquil forest with a cascading waterfall amidst greenery."
+        },
+        "lat": 44.5588,
+        "lon": -80.344
+    },
+    {
+        "id": "p2",
+        "title": "Sahara Desert Dunes",
+        "image": {
+            "src": "desert-dunes.jpg",
+            "alt": "Golden dunes stretching to the horizon in the Sahara Desert."
+        },
+        "lat": 25,
+        "lon": 0
+    },
+    ...
+]
+```
+
+So now on the UI, the `places` are able to be populated like this:
+
+![Project12-screenshot2](/01-starting-project-section-12/section12-demo/Project-12-2026-09-13-1.png)
+
