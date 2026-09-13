@@ -251,3 +251,122 @@ So now it will print the array inside of the `response` object directly:
 ]
 ```
 
+## Configuring HTTP Requests
+
+So the `this.httpClient.get()` when I hovered on `get`, it showed this:
+
+```
+(method) HttpClient.get<{
+ places: Place[];
+}>(url: string, options?: {
+ headers?: HttpHeaders | {
+ [header: string]: string | string[];
+ };
+ context?: HttpContext;
+ observe?: "body";
+ params?: HttpParams | {
+ [param: string]: string | number | boolean | ReadonlyArray<string | number | boolean>;
+ };
+ reportProgress?: boolean;
+ responseType?: "json";
+ withCredentials?: boolean;
+ transferCache?: {
+ includeHeaders?: string[];
+ } | boolean;
+}): Observable<...> (+14 overloads)
+
+Constructs a GET request that interprets the body as JSON and returns the response body in a given type.
+
+@param url — The endpoint URL.
+
+@param options — The HTTP options to send with the request.
+
+@return — An Observable of the HttpResponse, with a response body in the requested type.
+```
+
+So other than `url` i.e. 'http://localhost:3000/places', I can add this `option` object with `observe` property like the below to get `response` object. In layman term, I'm `observing` the `response`:
+
+```ts
+export class AvailablePlacesComponent implements OnInit{
+  places = signal<Place[] | undefined>(undefined);
+  private httpClient = inject(HttpClient);
+  private destroyRef = inject(DestroyRef);
+
+  ngOnInit(): void {
+    const subscription = this.httpClient.get<{ places: Place[] }>('http://localhost:3000/places', {
+      observe: 'response' // added!
+    })
+      .subscribe({
+        next: response => {
+          console.log(response);
+          console.log(response.body?.places); // pay attention!
+        }
+      });
+
+    this.destroyRef.onDestroy(() => {
+      subscription.unsubscribe();
+    });
+  }
+}
+```
+
+The output of `console.log(response);` is like this:
+
+```
+body: {places: Array(18)}
+headers: _HttpHeaders {normalizedNames: Map(0), lazyUpdate: null, lazyInit: ƒ}
+ok: true
+status: 200
+statusText: "OK"
+type: 4
+url: "http://localhost:3000/places"
+```
+
+But this is just a demo. I'm going back to just see the response data like this:
+
+```ts
+export class AvailablePlacesComponent implements OnInit{
+  places = signal<Place[] | undefined>(undefined);
+  private httpClient = inject(HttpClient);
+  private destroyRef = inject(DestroyRef);
+
+  ngOnInit(): void {
+    const subscription = this.httpClient.get<{ places: Place[] }>('http://localhost:3000/places')
+      .subscribe({
+        next: response => console.log(response.places) // updated!
+      });
+
+    this.destroyRef.onDestroy(() => {
+      subscription.unsubscribe();
+    });
+  }
+}
+```
+
+The output of `console.log(response.places)` is like this:
+
+```
+[
+    {
+        "id": "p1",
+        "title": "Forest Waterfall",
+        "image": {
+            "src": "forest-waterfall.jpg",
+            "alt": "A tranquil forest with a cascading waterfall amidst greenery."
+        },
+        "lat": 44.5588,
+        "lon": -80.344
+    },
+    {
+        "id": "p2",
+        "title": "Sahara Desert Dunes",
+        "image": {
+            "src": "desert-dunes.jpg",
+            "alt": "Golden dunes stretching to the horizon in the Sahara Desert."
+        },
+        "lat": 25,
+        "lon": 0
+    },
+    ...
+]
+```
