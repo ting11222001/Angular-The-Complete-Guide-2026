@@ -461,3 +461,56 @@ So now on the UI, the `places` are able to be populated like this:
 
 ![Project12-screenshot2](/01-starting-project-section-12/section12-demo/Project-12-2026-09-13-1.png)
 
+## Showing a Loading Fallback 
+
+In the `AvailablePlacesComponent`, in the `subscribe` add this `complete` function (which is a callback function that gets called by the producer if and when it has no more values to provide, and no error has happened).
+
+This `complete` function only runs once, once the observable and the offered request is done.
+
+Add a `isLoading` signal.
+
+```ts
+export class AvailablePlacesComponent implements OnInit{
+  places = signal<Place[] | undefined>(undefined);
+  private httpClient = inject(HttpClient);
+  private destroyRef = inject(DestroyRef);
+  isLoading = signal<boolean>(false); // added
+
+  ngOnInit(): void {
+    this.isLoading.set(true); // added
+    const subscription = this.httpClient.get<{ places: Place[] }>('http://localhost:3000/places')
+      .pipe(
+        map(response => response.places)
+      )
+      .subscribe({
+        next: places => {
+          this.places.set(places);
+        },
+        complete: () => this.isLoading.set(false), // added
+      });
+
+    this.destroyRef.onDestroy(() => {
+      subscription.unsubscribe();
+    });
+  }
+}
+```
+
+And add a conditional block in the template given the value of `isLoading()` signal:
+
+```html
+<app-places-container title="Available Places">
+  @if (isLoading()) {
+    <p class="fallback-text">Loading available places...</p>
+  }
+  @if (places()) {
+    <app-places [places]="places()!" />
+  } @else if (places()?.length === 0) {
+    <p class="fallback-text">Unfortunately, no places could be found.</p>
+  }
+</app-places-container>
+```
+
+Now it looks like when loading the places cards:
+
+![Project12-screenshot3](/01-starting-project-section-12/section12-demo/Project-12-2026-09-15-1.png)

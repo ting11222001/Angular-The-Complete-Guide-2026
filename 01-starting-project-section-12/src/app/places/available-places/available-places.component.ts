@@ -17,8 +17,10 @@ export class AvailablePlacesComponent implements OnInit{
   places = signal<Place[] | undefined>(undefined);
   private httpClient = inject(HttpClient);
   private destroyRef = inject(DestroyRef);
+  isLoading = signal<boolean>(false);
 
   ngOnInit(): void {
+    this.isLoading.set(true);
     const subscription = this.httpClient.get<{ places: Place[] }>('http://localhost:3000/places')
       .pipe(
         map(response => response.places)
@@ -26,7 +28,8 @@ export class AvailablePlacesComponent implements OnInit{
       .subscribe({
         next: places => {
           this.places.set(places);
-        }
+        },
+        complete: () => this.isLoading.set(false),
       });
 
     this.destroyRef.onDestroy(() => {
