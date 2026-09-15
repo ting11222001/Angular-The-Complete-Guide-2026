@@ -514,3 +514,109 @@ And add a conditional block in the template given the value of `isLoading()` sig
 Now it looks like when loading the places cards:
 
 ![Project12-screenshot3](/01-starting-project-section-12/section12-demo/Project-12-2026-09-15-1.png)
+
+## Concept revisit - `pipe()`, `subscribe()`, `Observer` object and its handlers (`next`, `error`, `complete`)
+
+### Why `pipe()` first
+
+An Observable on its own does nothing. It is like a plan or a recipe. It only starts producing values once something subscribes to it. This is called "lazy" behaviour.
+
+`pipe()` lets you chain operators (like `map`) to transform the data before it reaches your code. It does not run anything by itself. It just builds a new Observable that knows "when data comes in, transform it this way first."
+
+Think of it like a filter you attach to a hose before turning the tap on. You are setting up the transformation, not starting the flow yet.
+
+In my code:
+
+```ts
+.pipe(
+  map(response => response.places)
+)
+```
+
+This says: "When the HTTP response arrives, take only the `places` field from it." No HTTP call has happened yet at this point.
+
+### Why `subscribe()` starts it
+
+`subscribe()` is what actually triggers the action. For an HTTP Observable, this is the moment the real HTTP request is sent. Before `subscribe()`, nothing happens at all. This is different from a Promise, which starts running as soon as you create it.
+
+
+### What to call `next`, `error`, `complete`
+
+The object you pass to `subscribe()` is called an Observer. `next`, `error`, and `complete` are its handler functions (also called, `callbacks`). Each one reacts to a different kind of notification from the Observable:
+
+- `next`: called every time a new value arrives. Can happen many times.
+- `error`: called if something goes wrong. Stops the stream.
+- `complete`: called once, when the Observable finishes sending values (no more data coming).
+
+In my code, `next` saves the places into my signal, and `complete` turns off the `isLoading` flag once the stream has finished.
+
+
+## Concept revisit - `callback`
+
+A callback is a function you hand to another function. It does not run right away. It runs later, when something happens. Think of it like leaving your phone number with a shop. They call you back when your order is ready. You do not wait at the counter.
+
+In code, these are the common cases where a function is treated as a `callback`:
+
+- Event handlers. A function passed to `addEventListener` or an `onClick` prop. It runs when the user clicks, types, or scrolls.
+    - For example:
+    ```ts
+    // Plain DOM
+    document.getElementById('myButton')
+    .addEventListener('click', () => {
+        console.log('Button was clicked');
+    });
+
+    // React / Angular style prop
+    <button onClick={() => console.log('Button was clicked')}>
+    Click me
+    </button>
+    ```
+    - In both cases, the arrow function is the `callback`. The browser (or the framework) holds onto it and only runs it when the user actually clicks. Nothing happens at the time you write the code.
+- Async operations. A function passed to something like `setTimeout`, a file read, or a network request. It runs when the timer ends or the data arrives.
+    - For example:
+    ```ts
+    // setTimeout
+    setTimeout(() => {
+    console.log('3 seconds have passed');
+    }, 3000);
+    ```
+    - For `setTimeout`, the `callback` runs once the timer finishes.
+- Array methods. A function passed to `map`, `filter`, `forEach`, or `reduce`. It runs once for each item in the array. 
+    - Note: `map`, `filter`, `forEach`, and `reduce` are array methods that accept a `callback` as an argument. The function you pass into them is the `callback`. 
+    - For example:
+    ```ts
+    const numbers = [1, 2, 3, 4];
+
+    // forEach: runs the callback for each item, returns nothing
+    numbers.forEach(num => console.log(num));
+    // logs: 1, 2, 3, 4
+
+    // map: runs the callback for each item, builds a new array from the results
+    const doubled = numbers.map(num => num * 2);
+    // doubled = [2, 4, 6, 8]
+
+    // filter: runs the callback for each item, keeps items where it returns true
+    const evens = numbers.filter(num => num % 2 === 0);
+    // evens = [2, 4]
+
+    // reduce: runs the callback for each item, builds up a single result
+    const total = numbers.reduce((sum, num) => sum + num, 0);
+    // total = 10
+    ```
+- Promise chains. The functions inside `.then()` and `.catch()`. They run after a `promise` resolves or rejects.
+    - For example:
+    ```ts
+    fetch('http://localhost:3000/places')
+    .then(response => response.json())
+    .then(data => {
+        console.log('Places:', data.places);
+    })
+    .catch(error => {
+        console.error('Request failed:', error);
+    });
+    ```
+    - Each function inside `.then()` is a `callback` that runs once the `promise` before it resolves successfully. The function inside `.catch()` is a `callback` that runs only if something in the chain rejects, similar to how `error` works in your RxJS example.
+
+The common thread is this: if a function is passed as an argument, and something else decides when to run it, that function is a `callback`.
+
+How to check: in your own code, look for a function name passed without parentheses, like `onClick={handleClick}` rather than `onClick={handleClick()}`. The lack of parentheses means you are passing the function itself, not calling it straight away. That is usually a sign it is a `callback`.
