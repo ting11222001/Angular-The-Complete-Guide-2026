@@ -131,9 +131,9 @@ Next, I will do Section 13.
 
 ## Section 12: Sending HTTP Requests &amp; Handling Responses
 
-Last update: Aug 29, 2026.
+Last update: Sep 15, 2026.
 
-I will start doing this after section 14.
+I will start going back to section 14 with a new branch, `app-easy-task-routing-v2`, after I finish this section 12.
 
 ## Section 13: Handling User Input &amp; Working with Forms (Template-driven &amp; Reactive)
 
