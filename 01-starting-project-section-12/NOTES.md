@@ -747,5 +747,6 @@ export class AvailablePlacesComponent implements OnInit{
 
 Finally, it looks like this:
 
-
 ![Project12-screenshot5](/01-starting-project-section-12/section12-demo/Project-12-2026-09-16-2.png)
+
+After this exercise, remove the temporary server 500 error from the GET /places method from backend's `app.js`, and restart the backend service.
