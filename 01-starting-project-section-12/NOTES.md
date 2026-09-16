@@ -620,3 +620,132 @@ In code, these are the common cases where a function is treated as a `callback`:
 The common thread is this: if a function is passed as an argument, and something else decides when to run it, that function is a `callback`.
 
 How to check: in your own code, look for a function name passed without parentheses, like `onClick={handleClick}` rather than `onClick={handleClick()}`. The lack of parentheses means you are passing the function itself, not calling it straight away. That is usually a sign it is a `callback`.
+
+## Handling HTTP Errors
+
+In `app.js`, add this 500 error response temporarily to create error in UI.
+
+```js
+app.get("/places", async (req, res) => {
+  await new Promise((resolve) => setTimeout(resolve, 3000));
+
+  return res.status(500).json();
+});
+```
+
+Then, restart the backend service by ctrl + c and then run `npm start`.
+
+Now in the frontend browser's dev tool, I can see `ERROR HttpErrorResponse`.
+
+Next, in `AvailablePlacesComponent`, use the `error` function to set the `error` signal with the error value it receives from the `this.httpClient.get` observable:
+
+```ts
+export class AvailablePlacesComponent implements OnInit{
+  places = signal<Place[] | undefined>(undefined);
+  private httpClient = inject(HttpClient);
+  private destroyRef = inject(DestroyRef);
+  isLoading = signal<boolean>(false);
+  error = signal<string>('');  // added!
+
+  ngOnInit(): void {
+    this.isLoading.set(true);
+    const subscription = this.httpClient.get<{ places: Place[] }>('http://localhost:3000/places')
+      .pipe(
+        map(response => response.places)
+      )
+      .subscribe({
+        next: places => {
+          this.places.set(places);
+        },
+        error: (error) => {       // added!
+        //   this.error.set(error);  // instead of use error directly which is an object
+            this.error.set(error.message);  // use its message which should contain a string value.
+        },
+        complete: () => this.isLoading.set(false),
+      });
+
+    this.destroyRef.onDestroy(() => {
+      subscription.unsubscribe();
+    });
+  }
+}
+```
+
+Then, update the `AvailablePlacesComponent` template with the `error()` signal:
+
+```html
+<app-places-container title="Available Places">
+  @if (isLoading() && !error()) {
+    <p class="fallback-text">Loading available places...</p>
+  }
+
+  @if (error()) {
+    <p class="fallback-text">Error: {{ error() }}</p>
+  }
+  
+  @if (places()) {
+    <app-places [places]="places()!" />
+  } @else if (places()?.length === 0) {
+    <p class="fallback-text">Unfortunately, no places could be found.</p>
+  }
+</app-places-container>
+```
+
+So now the UI will show `Error: Http failure response for http://localhost:3000/places: 500 Internal Server Error`:
+
+
+![Project12-screenshot4](/01-starting-project-section-12/section12-demo/Project-12-2026-09-16-1.png)
+
+But to make my observer function leaner, I can use `catchError` as the 2nd argument in the `pipe` method.
+
+`catchError` will transform the error from the observable emitted by `this.httpClient.get`.
+
+`catchError` needs to return a new observable like `throwError()` which is also from RxJS.
+
+`throwError()` needs to return an error object, so I use JavaScript built-in `Error` class. I can set the user-friendly error message to this `Error` object.
+
+So this way seems more complicated, but it helped getting the error transformation logic out of the observer function.
+
+```ts
+export class AvailablePlacesComponent implements OnInit{
+  places = signal<Place[] | undefined>(undefined);
+  private httpClient = inject(HttpClient);
+  private destroyRef = inject(DestroyRef);
+  isLoading = signal<boolean>(false);
+  error = signal<string>('');
+
+  ngOnInit(): void {
+    this.isLoading.set(true);
+    const subscription = this.httpClient.get<{ places: Place[] }>('http://localhost:3000/places')
+      .pipe(
+        map(response => response.places),
+        catchError(error => {  // look!
+          console.log('Error fetching places:', error); // logging the original HttpResponse object
+          return throwError(   // look!
+            () => new Error('Failed to fetch places. Please try again later.')
+          );
+        })
+      )
+      .subscribe({
+        next: places => {
+          this.places.set(places);
+        },
+        error: (error: Error) => {  // added the type!
+          this.error.set(error.message);  // updated the error signal with this: 
+          // console.log('this error: ', this.error());
+          // That logging the message Failed to fetch places. Please try again later.
+        },
+        complete: () => this.isLoading.set(false),
+      });
+
+    this.destroyRef.onDestroy(() => {
+      subscription.unsubscribe();
+    });
+  }
+}
+```
+
+Finally, it looks like this:
+
+
+![Project12-screenshot5](/01-starting-project-section-12/section12-demo/Project-12-2026-09-16-2.png)
