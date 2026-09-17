@@ -750,3 +750,223 @@ Finally, it looks like this:
 ![Project12-screenshot5](/01-starting-project-section-12/section12-demo/Project-12-2026-09-16-2.png)
 
 After this exercise, remove the temporary server 500 error from the GET /places method from backend's `app.js`, and restart the backend service.
+
+## Sending data to backend
+
+This exercise helps me practice how to send data to the backend:
+- Click on a place card.
+- Trigger a put request (send the request with an id, which is a `placeId` in the existing places list).
+- Write the clicked place data into `data` folder > `user-places.json`, which represents a datatable in the database that stores the data of the favorite places a user selected.
+
+I already have this route in the `app.js`.
+
+Thie put request needs an input, `placeId`:
+
+```js
+app.put("/user-places", async (req, res) => {
+  const placeId = req.body.placeId;
+```
+
+`PlacesComponent` will emit the clicked place card from `onSelectPlace()`. Its template has a button click listener:
+
+```html
+  @for (place of places(); track place.id) {
+    <li class="place-item">
+      <button (click)="onSelectPlace(place)">
+        ...
+    }
+```
+
+So, when each place item is clicked, the `place` data is sent out to the parent component `AvailablePlacesComponent`:
+
+```ts
+export class PlacesComponent {
+  places = input.required<Place[]>();
+  selectPlace = output<Place>();
+
+  onSelectPlace() {
+    this.selectPlace.emit(place); // emit to AvailablePlacesComponent!
+  }
+}
+```
+
+In `AvailablePlacesComponent` template listens to the `$event`, which is the clicked place object:
+
+```html
+<app-places [places]="places()!" (selectPlace)="onSelectPlace($event)" />
+```
+
+So, in `AvailablePlacesComponent`, its `onSelectPlace()` can log this `$event` i.e. `selectedPlace` as such:
+
+```ts
+  onSelectPlace(selectedPlace: Place) {
+    console.log('=== AvailablePlacesComponent === onSelectPlace: ', selectedPlace);
+```
+
+Log in the Dev Tool > Console Tab:
+```json
+{
+    "id": "p1",
+    "title": "Forest Waterfall",
+    "image": {
+        "src": "forest-waterfall.jpg",
+        "alt": "A tranquil forest with a cascading waterfall amidst greenery."
+    },
+    "lat": 44.5588,
+    "lon": -80.344
+}
+```
+
+Then, in `AvailablePlacesComponent`, I'm attaching a data object to the `put` request to the backend like this:
+
+```ts
+export class AvailablePlacesComponent implements OnInit{
+   ...
+
+  ngOnInit(): void {
+   ...
+  }
+
+  onSelectPlace(selectedPlace: Place) {
+    console.log('=== AvailablePlacesComponent === onSelectPlace: ', selectedPlace);
+    this.httpClient.put('http://localhost:3000/user-places', {
+      placeId: selectedPlace.id
+    });
+  }
+}
+```
+
+There must be a `placeId` property in this request body which is in the JSON format, according to the `app.js` > `app.put("/user-places")`:
+
+```ts
+{
+    placeId: selectedPlace.id
+}
+```
+
+But now on UI, if I just click on any place card, the Dev Tool > Network Tab is not showing any new requests.
+
+Coz I need to `subscribe` to the `this.httpClient.put()` request to trigger it!
+
+If I don't care about the response of that put request, I can just stop here `.subscribe()`:
+
+```ts
+this.httpClient.put('http://localhost:3000/user-places', { 
+    placeId: selectedPlace.id 
+}).subscribe();
+```
+
+Or I can add an observer object, and define what will happen once the request is complete (`complete`), or when a new value is emitted from the observable like a `response` (`next`).
+
+So I update the put request as such:
+
+```ts
+  onSelectPlace(selectedPlace: Place) {
+    console.log('=== AvailablePlacesComponent === onSelectPlace: ', selectedPlace);
+
+    this.httpClient.put('http://localhost:3000/user-places', { 
+      placeId: selectedPlace.id 
+    }).subscribe({
+      next: (response) => console.log('User places:', response),
+      complete: () => console.log('Place added to user places successfully.'),
+    });
+  }
+```
+
+Now I click on the place card, it prints this in the Dev Tool > Console Tab:
+
+```
+Place added to user places: 
+{
+    "userPlaces": [
+        {
+            "id": "p1",
+            "title": "Forest Waterfall",
+            "image": {
+                "src": "forest-waterfall.jpg",
+                "alt": "A tranquil forest with a cascading waterfall amidst greenery."
+            },
+            "lat": 44.5588,
+            "lon": -80.344
+        }
+    ]
+}
+
+Place added to user places successfully.
+```
+
+In the Dev Tool > Network Tab, pop `user-places` open, where it shows the request url as `http://localhost:3000/user-places` with a request payload as `{placeId: "p1"}` and it gets a response, which is an object with a `userPlaces` as property.
+
+And when there are multiple clicks on different place cards, the `userPlaces` array starts to grow:
+
+```json
+{
+    "userPlaces": [
+        {
+            "id": "p1",
+            "title": "Forest Waterfall",
+            "image": {
+                "src": "forest-waterfall.jpg",
+                "alt": "A tranquil forest with a cascading waterfall amidst greenery."
+            },
+            "lat": 44.5588,
+            "lon": -80.344
+        },
+        {
+            "id": "p2",
+            "title": "Sahara Desert Dunes",
+            "image": {
+                "src": "desert-dunes.jpg",
+                "alt": "Golden dunes stretching to the horizon in the Sahara Desert."
+            },
+            "lat": 25,
+            "lon": 0
+        }
+    ]
+}
+```
+
+This put request's response is defined in `app.js`:
+
+```js
+app.put("/user-places", async (req, res) => {
+  const placeId = req.body.placeId;
+
+  const fileContent = await fs.readFile("./data/places.json");
+  const placesData = JSON.parse(fileContent);
+
+  const place = placesData.find((place) => place.id === placeId);
+
+  const userPlacesFileContent = await fs.readFile("./data/user-places.json");
+  const userPlacesData = JSON.parse(userPlacesFileContent);
+
+  let updatedUserPlaces = userPlacesData;
+
+  if (!userPlacesData.some((p) => p.id === place.id)) {
+    updatedUserPlaces = [...userPlacesData, place];
+  }
+
+  await fs.writeFile(
+    "./data/user-places.json",
+    JSON.stringify(updatedUserPlaces)
+  );
+
+  res.status(200).json({ userPlaces: updatedUserPlaces });
+});
+```
+
+![Project12-screenshot6](/01-starting-project-section-12/section12-demo/Project-12-2026-09-17-1.png)
+
+Here are the tabs in the Dev Tool > Network Tab:
+
+![Project12-screenshot7](/01-starting-project-section-12/section12-demo/Project-12-2026-09-17-2.png)
+
+![Project12-screenshot8](/01-starting-project-section-12/section12-demo/Project-12-2026-09-17-3.png)
+
+![Project12-screenshot9](/01-starting-project-section-12/section12-demo/Project-12-2026-09-17-4.png)
+
+And `user-places.json` show the newly clicked-to-update object here:
+
+```json
+[{"id":"p1","title":"Forest Waterfall","image":{"src":"forest-waterfall.jpg","alt":"A tranquil forest with a cascading waterfall amidst greenery."},"lat":44.5588,"lon":-80.344}]
+```
