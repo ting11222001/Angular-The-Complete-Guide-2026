@@ -970,3 +970,91 @@ And `user-places.json` show the newly clicked-to-update object here:
 ```json
 [{"id":"p1","title":"Forest Waterfall","image":{"src":"forest-waterfall.jpg","alt":"A tranquil forest with a cascading waterfall amidst greenery."},"lat":44.5588,"lon":-80.344}]
 ```
+
+## More data fetching
+
+Now, I want to show User's favorite places in the 'Your Favorite Places' box on UI.
+
+So the `UserPlacesComponent` will have the new code - similar to `AvailablePlacesComponent`:
+
+```ts
+export class UserPlacesComponent {
+  places = signal<Place[] | undefined>(undefined);
+  private httpClient = inject(HttpClient);
+  private destroyRef = inject(DestroyRef);
+  isLoading = signal<boolean>(false);
+  error = signal<string>('');
+
+   ngOnInit(): void {
+      this.isLoading.set(true);
+      const subscription = this.httpClient.get<{ places: Place[] }>('http://localhost:3000/user-places')
+        .pipe(
+          map(response => response.places),
+          catchError(error => {
+            console.log('Error fetching places:', error);
+            return throwError(
+              () => new Error('Failed to fetch your favorite places. Please try again later.')
+            );
+          })
+        )
+        .subscribe({
+          next: places => {
+            this.places.set(places);
+          },
+          error: (error: Error) => {
+            this.error.set(error.message);
+          },
+          complete: () => this.isLoading.set(false),
+        });
+  
+      this.destroyRef.onDestroy(() => {
+        subscription.unsubscribe();
+      });
+    }
+}
+```
+
+GET `/user-places` request in `app.js` will help me get the user's favorite places from `user-places.json`:
+
+```js
+app.get("/user-places", async (req, res) => {
+  const fileContent = await fs.readFile("./data/user-places.json");
+
+  const places = JSON.parse(fileContent);
+
+  res.status(200).json({ places });
+});
+```
+
+For example, if I click a few places cards in the `Available Places` box on UI, the `user-places.json` will look like this:
+
+```json
+[
+    {
+        "id":"p16",
+        "title":"Victoria Falls",
+        "image":{
+            "src":"victoria-falls.jpg",
+            "alt":"The powerful cascade of Victoria Falls, a natural wonder between Zambia and Zimbabwe."
+        },
+        "lat":-17.9243,
+        "lon":25.8572
+    },
+    {
+        "id":"p17",
+        "title":"Machu Picchu",
+        "image":{
+            "src":"machu-picchu.jpg",
+            "alt":"The historic Incan citadel of Machu Picchu illuminated by the morning sun."
+        },
+        "lat":-13.1631,
+        "lon":-72.545
+    }
+]
+``` 
+
+They will show up in the UI like this:
+
+![Project12-screenshot10](/01-starting-project-section-12/section12-demo/Project-12-2026-09-18-1.png)
+
+Next, I will practice to outsource the shared logic into a service.
