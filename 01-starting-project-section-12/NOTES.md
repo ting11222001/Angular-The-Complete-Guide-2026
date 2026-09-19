@@ -1058,3 +1058,268 @@ They will show up in the UI like this:
 ![Project12-screenshot10](/01-starting-project-section-12/section12-demo/Project-12-2026-09-18-1.png)
 
 Next, I will practice to outsource the shared logic into a service.
+
+## Outsourcing HTTP Request Logic Into A Service
+
+Update the existing `PlacesService` boilerplate code:
+
+```ts
+@Injectable({
+  providedIn: 'root',
+})
+export class PlacesService {
+  private userPlaces = signal<Place[]>([]);
+
+  loadedUserPlaces = this.userPlaces.asReadonly();
+
+  loadAvailablePlaces() {}
+
+  loadUserPlaces() {}
+
+  addPlaceToUserPlaces(place: Place) {}
+
+  removeUserPlace(place: Place) {}
+
+  // added a private method to fetch places from the backend
+  private fetchPlaces() {}
+}
+```
+
+Grab the `this.httpClient.get()` from `UserPlacesComponent` - cut until right BEFORE the `.subscribe()` and put it in the `PlacesService`.
+
+So `PlacesService` becomes:
+
+```ts
+@Injectable({
+  providedIn: 'root',
+})
+export class PlacesService {
+  private userPlaces = signal<Place[]>([]);
+  private httpClient = inject(HttpClient);
+
+  loadedUserPlaces = this.userPlaces.asReadonly();
+
+  loadAvailablePlaces() {}
+
+  loadUserPlaces() {}
+
+  addPlaceToUserPlaces(place: Place) {}
+
+  removeUserPlace(place: Place) {}
+
+  // added a private method to fetch places from the backend
+  private fetchPlaces() {
+    this.httpClient.get<{ places: Place[] }>('http://localhost:3000/user-places')
+        .pipe(
+          map(response => response.places),
+          catchError(error => {
+            console.log('Error fetching places:', error);
+            return throwError(
+              () => new Error('Failed to fetch your favorite places. Please try again later.')
+            );
+          })
+        )
+  }
+} 
+```
+
+Since `fetchPlaces()` is a private method, it's going to be called in `` and ``. 
+
+Now it takes in the `url` and `errorMessage` these two params like this:
+
+```ts
+@Injectable({
+  providedIn: 'root',
+})
+export class PlacesService {
+  private userPlaces = signal<Place[]>([]);
+  private httpClient = inject(HttpClient);
+
+  loadedUserPlaces = this.userPlaces.asReadonly();
+
+  loadAvailablePlaces() {
+    return this.fetchPlaces('http://localhost:3000/places', 'Failed to fetch available places. Please try again later.');
+  }
+
+  loadUserPlaces() {
+    return this.fetchPlaces('http://localhost:3000/user-places', 'Failed to fetch your favorite places. Please try again later.');
+  }
+
+  addPlaceToUserPlaces(place: Place) {}
+
+  removeUserPlace(place: Place) {}
+
+  // added a private method to fetch places from the backend, and use it in loadAvailablePlaces and loadUserPlaces
+  private fetchPlaces(url: string, errorMessage: string) {
+    return this.httpClient.get<{ places: Place[] }>(url)
+        .pipe(
+          map(response => response.places),
+          catchError(error => {
+            console.log('Error fetching places:', error);
+            return throwError(
+              () => new Error(errorMessage)
+            );
+          })
+        )
+  }
+}
+```
+
+Now, I can go to `AvailablePlacesComponent` and use this service's `loadAvailablePlaces` instead:
+
+```ts
+export class AvailablePlacesComponent implements OnInit {
+  places = signal<Place[] | undefined>(undefined);
+  private httpClient = inject(HttpClient);
+  private destroyRef = inject(DestroyRef);
+  isLoading = signal<boolean>(false);
+  error = signal<string>('');
+  private placesService = inject(PlacesService);
+
+  ngOnInit(): void {
+    this.isLoading.set(true);
+    const subscription = this.placesService.loadAvailablePlaces() // updated!
+      .subscribe({        // better subscribe to the observable returned by loadAvailablePlaces in the component
+        next: places => { // I can also easily update the UI based on the state of the observable
+          this.places.set(places);
+        },
+        error: (error: Error) => {
+          this.error.set(error.message);
+        },
+        complete: () => this.isLoading.set(false),
+      });
+
+    this.destroyRef.onDestroy(() => { // so that I can unsubscribe from the observable when the component is destroyed
+      subscription.unsubscribe();
+    });
+  }
+  ...
+}
+```
+
+That's the reason why it's common to see the http configuration is set in the service whereas the subscription and un-subscription are defined in the component instead.
+
+`loadAvailablePlaces()` looks like this in `PlacesService`:
+
+```ts
+@Injectable({
+  providedIn: 'root',
+})
+export class PlacesService {
+  private userPlaces = signal<Place[]>([]);
+  private httpClient = inject(HttpClient);
+
+  loadedUserPlaces = this.userPlaces.asReadonly();
+
+  loadAvailablePlaces() {
+    return this.fetchPlaces('http://localhost:3000/places', 'Failed to fetch available places. Please try again later.');
+  }
+
+  // added a private method to fetch places from the backend, and use it in loadAvailablePlaces and loadUserPlaces
+  private fetchPlaces(url: string, errorMessage: string) {
+    return this.httpClient.get<{ places: Place[] }>(url)
+        .pipe(
+          map(response => response.places),
+          catchError(error => {
+            console.log('Error fetching places:', error);
+            return throwError(
+              () => new Error(errorMessage)
+            );
+          })
+        )
+  }
+}
+```
+
+I should also update the `onSelectPlace()` in the `AvailablePlacesComponent` like this:
+
+```ts
+export class AvailablePlacesComponent implements OnInit{
+  ...
+
+  onSelectPlace(selectedPlace: Place) {
+    console.log('=== AvailablePlacesComponent === onSelectPlace: ', selectedPlace);
+    this.placesService.addPlaceToUserPlaces(selectedPlace.id).subscribe({ // updated! Only passing the place id into addPlaceToUserPlaces
+      next: (response) => console.log('User places:', response),
+      complete: () => console.log('Place added to user places successfully.'),
+    });
+  }
+}
+```
+
+`addPlaceToUserPlaces()` looks like this in `PlacesService`:
+
+```ts
+@Injectable({
+  providedIn: 'root',
+})
+export class PlacesService {
+  private httpClient = inject(HttpClient);
+
+  addPlaceToUserPlaces(placeId: string) {
+    return this.httpClient.put('http://localhost:3000/user-places', { 
+      placeId: placeId // I can also just write placeId as the key and value are having the same name
+    })
+  }
+}
+```
+
+Just notice that I should also clean up the subscription in the `onSelectPlace()` in the `AvailablePlacesComponent`:
+
+```ts
+export class AvailablePlacesComponent implements OnInit{
+  ...
+  private destroyRef = inject(DestroyRef);
+  private placesService = inject(PlacesService);
+
+  ngOnInit(): void {
+    ...
+  }
+
+  onSelectPlace(selectedPlace: Place) {
+    console.log('=== AvailablePlacesComponent === onSelectPlace: ', selectedPlace);
+
+    const subscription = this.placesService.addPlaceToUserPlaces(selectedPlace.id).subscribe({
+      next: (response) => console.log('User places:', response),
+      complete: () => console.log('Place added to user places successfully.'),
+    });
+
+    this.destroyRef.onDestroy(() => {
+      subscription.unsubscribe();
+    });
+  }
+}
+```
+
+
+Finally, `UserPlacesComponent` and its `onSelectPlace()` becomes:
+
+```ts
+export class UserPlacesComponent {
+  places = signal<Place[] | undefined>(undefined);
+  private destroyRef = inject(DestroyRef);
+  isLoading = signal<boolean>(false);
+  error = signal<string>('');
+  private placesService = inject(PlacesService);
+
+   ngOnInit(): void {
+      this.isLoading.set(true);
+      const subscription = this.placesService.loadUserPlaces() // updated!
+        .subscribe({
+          next: places => {
+            this.places.set(places);
+          },
+          error: (error: Error) => {
+            this.error.set(error.message);
+          },
+          complete: () => this.isLoading.set(false),
+        });
+  
+      this.destroyRef.onDestroy(() => {
+        subscription.unsubscribe();
+      });
+    }
+}
+``` 
+
+So eventually I'm using the `placesService` to fetch data and components only need to control the UI display.

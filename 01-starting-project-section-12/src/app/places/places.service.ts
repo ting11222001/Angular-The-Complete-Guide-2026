@@ -1,20 +1,47 @@
-import { Injectable, signal } from '@angular/core';
+import { inject, Injectable, signal } from '@angular/core';
 
 import { Place } from './place.model';
+import { catchError } from 'rxjs/internal/operators/catchError';
+import { map } from 'rxjs/internal/operators/map';
+import { throwError } from 'rxjs/internal/observable/throwError';
+import { HttpClient } from '@angular/common/http';
 
 @Injectable({
   providedIn: 'root',
 })
 export class PlacesService {
   private userPlaces = signal<Place[]>([]);
+  private httpClient = inject(HttpClient);
 
   loadedUserPlaces = this.userPlaces.asReadonly();
 
-  loadAvailablePlaces() {}
+  loadAvailablePlaces() {
+    return this.fetchPlaces('http://localhost:3000/places', 'Failed to fetch available places. Please try again later.');
+  }
 
-  loadUserPlaces() {}
+  loadUserPlaces() {
+    return this.fetchPlaces('http://localhost:3000/user-places', 'Failed to fetch your favorite places. Please try again later.');
+  }
 
-  addPlaceToUserPlaces(place: Place) {}
+  addPlaceToUserPlaces(placeId: string) {
+    return this.httpClient.put('http://localhost:3000/user-places', { 
+      placeId: placeId 
+    })
+  }
 
   removeUserPlace(place: Place) {}
+
+  // added a private method to fetch places from the backend, and use it in loadAvailablePlaces and loadUserPlaces
+  private fetchPlaces(url: string, errorMessage: string) {
+    return this.httpClient.get<{ places: Place[] }>(url)
+        .pipe(
+          map(response => response.places),
+          catchError(error => {
+            console.log('Error fetching places:', error);
+            return throwError(
+              () => new Error(errorMessage)
+            );
+          })
+        )
+  }
 }

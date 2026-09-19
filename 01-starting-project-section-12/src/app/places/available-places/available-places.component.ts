@@ -3,8 +3,7 @@ import { Component, inject, OnInit, signal, DestroyRef } from '@angular/core';
 import { Place } from '../place.model';
 import { PlacesComponent } from '../places.component';
 import { PlacesContainerComponent } from '../places-container/places-container.component';
-import { HttpClient } from '@angular/common/http';
-import { catchError, map, throwError } from 'rxjs';
+import { PlacesService } from '../places.service';
 
 @Component({
   selector: 'app-available-places',
@@ -15,25 +14,16 @@ import { catchError, map, throwError } from 'rxjs';
 })
 export class AvailablePlacesComponent implements OnInit{
   places = signal<Place[] | undefined>(undefined);
-  private httpClient = inject(HttpClient);
   private destroyRef = inject(DestroyRef);
   isLoading = signal<boolean>(false);
   error = signal<string>('');
+  private placesService = inject(PlacesService);
 
   ngOnInit(): void {
     this.isLoading.set(true);
-    const subscription = this.httpClient.get<{ places: Place[] }>('http://localhost:3000/places')
-      .pipe(
-        map(response => response.places),
-        catchError(error => {
-          console.log('Error fetching places:', error);
-          return throwError(
-            () => new Error('Failed to fetch places. Please try again later.')
-          );
-        })
-      )
-      .subscribe({
-        next: places => {
+    const subscription = this.placesService.loadAvailablePlaces()
+      .subscribe({        // better subscribe to the observable returned by loadAvailablePlaces in the component
+        next: places => { // I can also easily update the UI based on the state of the observable
           this.places.set(places);
         },
         error: (error: Error) => {
@@ -42,18 +32,21 @@ export class AvailablePlacesComponent implements OnInit{
         complete: () => this.isLoading.set(false),
       });
 
-    this.destroyRef.onDestroy(() => {
+    this.destroyRef.onDestroy(() => { // so that I can unsubscribe from the observable when the component is destroyed
       subscription.unsubscribe();
     });
   }
 
   onSelectPlace(selectedPlace: Place) {
     console.log('=== AvailablePlacesComponent === onSelectPlace: ', selectedPlace);
-    this.httpClient.put('http://localhost:3000/user-places', { 
-      placeId: selectedPlace.id 
-    }).subscribe({
+
+    const subscription = this.placesService.addPlaceToUserPlaces(selectedPlace.id).subscribe({
       next: (response) => console.log('User places:', response),
       complete: () => console.log('Place added to user places successfully.'),
+    });
+
+    this.destroyRef.onDestroy(() => {
+      subscription.unsubscribe();
     });
   }
 }
