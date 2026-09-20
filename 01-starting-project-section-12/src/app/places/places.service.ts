@@ -5,6 +5,7 @@ import { catchError } from 'rxjs/internal/operators/catchError';
 import { map } from 'rxjs/internal/operators/map';
 import { throwError } from 'rxjs/internal/observable/throwError';
 import { HttpClient } from '@angular/common/http';
+import { tap } from 'rxjs/internal/operators/tap';
 
 @Injectable({
   providedIn: 'root',
@@ -16,11 +17,21 @@ export class PlacesService {
   loadedUserPlaces = this.userPlaces.asReadonly();
 
   loadAvailablePlaces() {
-    return this.fetchPlaces('http://localhost:3000/places', 'Failed to fetch available places. Please try again later.');
+    return this.fetchPlaces(
+      'http://localhost:3000/places', 
+      'Failed to fetch available places. Please try again later.'
+    );
   }
 
   loadUserPlaces() {
-    return this.fetchPlaces('http://localhost:3000/user-places', 'Failed to fetch your favorite places. Please try again later.');
+    return this.fetchPlaces(
+      'http://localhost:3000/user-places', 
+      'Failed to fetch your favorite places. Please try again later.'
+    ).pipe( // I can pipe here again even though I already piped in fetchPlaces, because the return value of fetchPlaces is an observable
+      tap({
+        next: (userPlaces) => this.userPlaces.set(userPlaces), // I can update the userPlaces signal with the fetched user places without subscribing here
+      })
+    );
   }
 
   addPlaceToUserPlaces(placeId: string) {

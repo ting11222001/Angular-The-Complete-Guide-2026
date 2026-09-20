@@ -1323,3 +1323,71 @@ export class UserPlacesComponent {
 ``` 
 
 So eventually I'm using the `placesService` to fetch data and components only need to control the UI display.
+
+## Managing HTTP-loaded Data via a Service
+
+In `UserPlacesComponent`, instead of fetching data there and then managing the signal state of `places` in the component, move it to `PlacesService`.
+
+For example, in `PlacesService`, there is `userPlaces` and it's exposed as a read-only signal as the below.
+
+And I learned to use `tap` to update the `userPlaces` signal after it's fetched from `fetchPlaces()`.
+
+Note:
+- `pipe`: I can pipe here again even though I already piped in fetchPlaces, because the return value of fetchPlaces is an observable
+- `tap`: I can update the userPlaces signal with the fetched user places without subscribing here
+
+```ts
+@Injectable({
+  providedIn: 'root',
+})
+export class PlacesService {
+  private userPlaces = signal<Place[]>([]);
+  private httpClient = inject(HttpClient);
+
+  loadedUserPlaces = this.userPlaces.asReadonly();
+
+  loadUserPlaces() {
+    return this.fetchPlaces(
+      'http://localhost:3000/user-places', 
+      'Failed to fetch your favorite places. Please try again later.'
+    ).pipe( // I can pipe here again even though I already piped in fetchPlaces
+      tap({
+        next: (userPlaces) => this.userPlaces.set(userPlaces), // I can update the userPlaces signal without subscribing here
+      })
+    );
+  } 
+...
+}
+```
+
+Then, in `UserPlacesComponent`, I can replace the existing `places` signal in the `UserPlacesComponent` with the one from `PlacesService`, i.e. `this.placesService.loadedUserPlaces` so that now in the `UserPlacesComponent`, I only need to deal with the `error` and `complete` state of the fetched data: 
+
+```ts
+export class UserPlacesComponent {
+  // places = signal<Place[] | undefined>(undefined); // this is replaced by the loadedUserPlaces signal in the PlacesService
+  private destroyRef = inject(DestroyRef);
+  isLoading = signal<boolean>(false);
+  error = signal<string>('');
+  private placesService = inject(PlacesService);
+  places = this.placesService.loadedUserPlaces; // loadedUserPlaces is a readonly signal, so I can use it directly in the template without worrying about accidentally modifying it
+
+   ngOnInit(): void {
+      this.isLoading.set(true);
+      const subscription = this.placesService.loadUserPlaces()
+        .subscribe({
+          // I don't need to update the places signal here because I already updated it in the PlacesService i.e. loadUserPlaces
+          // next: places => {
+          //   this.places.set(places);
+          // },
+          error: (error: Error) => {
+            this.error.set(error.message);
+          },
+          complete: () => this.isLoading.set(false),
+        });
+  
+      this.destroyRef.onDestroy(() => {
+        subscription.unsubscribe();
+      });
+    }
+}
+```

@@ -13,19 +13,16 @@ import { PlacesService } from '../places.service';
   imports: [PlacesContainerComponent, PlacesComponent],
 })
 export class UserPlacesComponent {
-  places = signal<Place[] | undefined>(undefined);
   private destroyRef = inject(DestroyRef);
   isLoading = signal<boolean>(false);
   error = signal<string>('');
   private placesService = inject(PlacesService);
+  places = this.placesService.loadedUserPlaces; // loadedUserPlaces is a readonly signal
 
    ngOnInit(): void {
       this.isLoading.set(true);
       const subscription = this.placesService.loadUserPlaces()
         .subscribe({
-          next: places => {
-            this.places.set(places);
-          },
           error: (error: Error) => {
             this.error.set(error.message);
           },
