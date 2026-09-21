@@ -40,7 +40,7 @@ export class AvailablePlacesComponent implements OnInit{
   onSelectPlace(selectedPlace: Place) {
     console.log('=== AvailablePlacesComponent === onSelectPlace: ', selectedPlace);
 
-    const subscription = this.placesService.addPlaceToUserPlaces(selectedPlace.id).subscribe({
+    const subscription = this.placesService.addPlaceToUserPlaces(selectedPlace).subscribe({
       next: (response) => console.log('User places:', response),
       complete: () => console.log('Place added to user places successfully.'),
     });

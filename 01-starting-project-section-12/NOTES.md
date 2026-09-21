@@ -1391,3 +1391,50 @@ export class UserPlacesComponent {
     }
 }
 ```
+
+## Implementing Optimistic Updating
+
+Currently when User clicks a `Place` card in the `Available Places`, the `Place` card indeed get added into the `user-places.json`, but it doesn't show up in the `Your Favorite Places` on the UI.
+
+I can do this to make sure all the places in the app that's using `userPlaces` in the `PlacesService` (i.e. `UserPlacesComponent`) got the latest version of it when one place in the app (i.e. `AvailablePlacesComponent`) triggered `addPlaceToUserPlaces`:
+
+In `PlacesService`;
+
+```ts
+// old
+addPlaceToUserPlaces(placeId: string) {
+    return this.httpClient.put('http://localhost:3000/user-places', { 
+        placeId: placeId 
+    })
+}
+
+// new
+addPlaceToUserPlaces(place: Place) {
+    this.userPlaces.update(prevPlaces => [...prevPlaces, place]); // update the userPlaces signal with the new place
+
+    return this.httpClient.put('http://localhost:3000/user-places', {
+        placeId: place.id,
+    });
+}
+```
+
+In `AvailablePlacesComponent` I can just pass the entire `selectedPlace` into `this.placesService.addPlaceToUserPlaces()`:
+
+```ts
+onSelectPlace(selectedPlace: Place) {
+    console.log('=== AvailablePlacesComponent === onSelectPlace: ', selectedPlace);
+
+    const subscription = this.placesService.addPlaceToUserPlaces(selectedPlace).subscribe({ // updated!
+        next: (response) => console.log('User places:', response),
+        complete: () => console.log('Place added to user places successfully.'),
+    });
+
+    this.destroyRef.onDestroy(() => {
+        subscription.unsubscribe();
+    });
+}
+```
+
+Now it looks like this once User clicks `Caribbean Beach`:
+
+![Project12-screenshot11](/01-starting-project-section-12/section12-demo/Project-12-2026-09-21-1.png)

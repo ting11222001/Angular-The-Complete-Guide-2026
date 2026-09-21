@@ -34,10 +34,12 @@ export class PlacesService {
     );
   }
 
-  addPlaceToUserPlaces(placeId: string) {
-    return this.httpClient.put('http://localhost:3000/user-places', { 
-      placeId: placeId 
-    })
+  addPlaceToUserPlaces(place: Place) {
+    this.userPlaces.update(prevPlaces => [...prevPlaces, place]); // update the userPlaces signal with the new place
+
+    return this.httpClient.put('http://localhost:3000/user-places', {
+      placeId: place.id,
+    });
   }
 
   removeUserPlace(place: Place) {}
