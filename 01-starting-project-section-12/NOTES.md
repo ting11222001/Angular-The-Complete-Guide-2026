@@ -1438,3 +1438,110 @@ onSelectPlace(selectedPlace: Place) {
 Now it looks like this once User clicks `Caribbean Beach`:
 
 ![Project12-screenshot11](/01-starting-project-section-12/section12-demo/Project-12-2026-09-21-1.png)
+
+## Potential Problems Introduced by Optimistic Updating
+
+However, in `PlacesService`, this current approach is called `optimistic updating` as I'm updating the `userPlaces` signal BEFORE I have a response from `this.httpClient.put()`.
+
+For example, currently I have this `this.userPlaces.update(prevPlaces => [...prevPlaces, place]);` BEFORE `this.httpClient.put()`:
+
+```ts
+addPlaceToUserPlaces(place: Place) {
+    this.userPlaces.update(prevPlaces => [...prevPlaces, place]); // update the userPlaces signal with the new place
+
+    return this.httpClient.put('http://localhost:3000/user-places', {
+      placeId: place.id,
+    });
+  }
+```
+
+If now in `app.js` and the `PUT` endpoint for `/user-places`, I added this `status(500)` to let it exit the endpoint early, and then on UI, click an available place, then this place will be added to the `Your Favorite Places` area, but once the page is refreshed, then it's gone.
+
+Because it's never fully finished the rest of the code in `app.put("/user-places"`.
+
+For example:
+
+```ts
+app.put("/user-places", async (req, res) => {
+  const placeId = req.body.placeId;
+
+  return res.status(500).json({ message: "This is a simulated error for testing purposes." }); // exit here!
+
+  const fileContent = await fs.readFile("./data/places.json");
+  const placesData = JSON.parse(fileContent);
+
+  const place = placesData.find((place) => place.id === placeId);
+
+  const userPlacesFileContent = await fs.readFile("./data/user-places.json");
+  const userPlacesData = JSON.parse(userPlacesFileContent);
+
+  let updatedUserPlaces = userPlacesData;
+
+  if (!userPlacesData.some((p) => p.id === place.id)) { // will not get to this line of code to update the user-places.json!
+    updatedUserPlaces = [...userPlacesData, place];
+  }
+
+  await fs.writeFile(
+    "./data/user-places.json",
+    JSON.stringify(updatedUserPlaces)
+  );
+
+  res.status(200).json({ userPlaces: updatedUserPlaces });
+});
+```
+
+## Improved optimistic updating
+
+How can I avoid this problem?
+
+I could add a pipe and add some operators to this observable chain here.
+
+I can update the `` like this:
+
+```ts
+addPlaceToUserPlaces(place: Place) {
+    const prevPlaces = this.userPlaces(); // prepare the rollback in case the HTTP request fails
+    this.userPlaces.set([...prevPlaces, place]); // since now I have prevPlace, I can update the userPlaces signal with the new place without using update method
+
+    return this.httpClient.put('http://localhost:3000/user-places', {
+        placeId: place.id,
+    }).pipe(
+        catchError(error => {
+            this.userPlaces.set(prevPlaces); // rollback the userPlaces signal to the previous state if the HTTP request fails
+            return throwError(() => new Error('Failed to add place to your favorite places. Please try again later.'));
+        })
+    );
+}
+```
+
+So now on the UI, once I click on an available place, the place will be added but then removed from the Your Favorite Places area quickly as the rollback design is effective.
+
+I can also see the network error message added in `app.js` by me:
+
+![Project12-screenshot12](/01-starting-project-section-12/section12-demo/Project-12-2026-09-22-1.png)
+
+Next, I can add an extra check to only add the place to the userPlaces signal if it is NOT already in the list:
+
+```ts
+  addPlaceToUserPlaces(place: Place) {
+    const prevPlaces = this.userPlaces(); // prepare the rollback in case the HTTP request fails
+
+    // only add the place to the userPlaces signal if it is not already in the list
+    if (!prevPlaces.some(p => p.id === place.id)) {
+      this.userPlaces.set([ ...prevPlaces, place ]);
+    }
+
+    return this.httpClient.put('http://localhost:3000/user-places', {
+      placeId: place.id,
+    }).pipe(
+      catchError(error => {
+        this.userPlaces.set(prevPlaces); // rollback the userPlaces signal to the previous state if the HTTP request fails
+        return throwError(() => new Error('Failed to add place to your favorite places. Please try again later.'));
+      })
+    );
+  }
+```
+
+Then, remove this temporary code `return res.status(500).json({ message: "This is a simulated error for testing purposes." });` from `app.put("/user-places")` in `app.js`.
+
+In the UI, it should allow User to add an available place by clicking a place card, and it will be added to the `Your Favorite Places` area correctly without duplicates.

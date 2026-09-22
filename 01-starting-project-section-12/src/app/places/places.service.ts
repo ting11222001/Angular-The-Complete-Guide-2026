@@ -35,11 +35,21 @@ export class PlacesService {
   }
 
   addPlaceToUserPlaces(place: Place) {
-    this.userPlaces.update(prevPlaces => [...prevPlaces, place]); // update the userPlaces signal with the new place
+    const prevPlaces = this.userPlaces(); // prepare the rollback in case the HTTP request fails
+
+    // only add the place to the userPlaces signal if it is not already in the list
+    if (!prevPlaces.some(p => p.id === place.id)) {
+      this.userPlaces.set([ ...prevPlaces, place ]);
+    }
 
     return this.httpClient.put('http://localhost:3000/user-places', {
       placeId: place.id,
-    });
+    }).pipe(
+      catchError(error => {
+        this.userPlaces.set(prevPlaces); // rollback the userPlaces signal to the previous state if the HTTP request fails
+        return throwError(() => new Error('Failed to add place to your favorite places. Please try again later.'));
+      })
+    );
   }
 
   removeUserPlace(place: Place) {}
