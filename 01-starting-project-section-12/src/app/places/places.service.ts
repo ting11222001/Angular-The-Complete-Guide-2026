@@ -6,6 +6,7 @@ import { map } from 'rxjs/internal/operators/map';
 import { throwError } from 'rxjs/internal/observable/throwError';
 import { HttpClient } from '@angular/common/http';
 import { tap } from 'rxjs/internal/operators/tap';
+import { ErrorService } from '../shared/error.service';
 
 @Injectable({
   providedIn: 'root',
@@ -13,6 +14,7 @@ import { tap } from 'rxjs/internal/operators/tap';
 export class PlacesService {
   private userPlaces = signal<Place[]>([]);
   private httpClient = inject(HttpClient);
+  private errorService = inject(ErrorService);
 
   loadedUserPlaces = this.userPlaces.asReadonly();
 
@@ -47,6 +49,7 @@ export class PlacesService {
     }).pipe(
       catchError(error => {
         this.userPlaces.set(prevPlaces); // rollback the userPlaces signal to the previous state if the HTTP request fails
+        this.errorService.showError('Failed to add place to your favorite places. Please try again later.');
         return throwError(() => new Error('Failed to add place to your favorite places. Please try again later.'));
       })
     );

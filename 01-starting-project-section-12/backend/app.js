@@ -39,6 +39,8 @@ app.get("/user-places", async (req, res) => {
 app.put("/user-places", async (req, res) => {
   const placeId = req.body.placeId;
 
+  return res.status(500).json(); // temporary error to test error handling in the frontend
+
   const fileContent = await fs.readFile("./data/places.json");
   const placesData = JSON.parse(fileContent);
 

@@ -75,7 +75,7 @@ How do I send HTTP requests in angular applications?
 In `AvailablePlacesComponent`, use this `HttpClient` service:
 
 ```ts
-import { HttpClient } from '@angular/common/http';
+import { HttpClient } from "@angular/common/http";
 
 export class AvailablePlacesComponent {
   places = signal<Place[] | undefined>(undefined);
@@ -86,19 +86,19 @@ export class AvailablePlacesComponent {
 Remember! I need to set up a provider for this `HttpClient` service so that Angular will know how to inject this service, or it will show this error in the `localhost:4200`:
 
 ```
-core.mjs:7195 ERROR NullInjectorError: R3InjectorError(Environment Injector)[_HttpClient -> _HttpClient]: 
+core.mjs:7195 ERROR NullInjectorError: R3InjectorError(Environment Injector)[_HttpClient -> _HttpClient]:
   NullInjectorError: No provider for _HttpClient!
 ```
 
 And to make it available for the entire app, add the provider in the `main.ts`.
 
 ```ts
-import { provideHttpClient } from '@angular/common/http';
+import { provideHttpClient } from "@angular/common/http";
 
 bootstrapApplication(AppComponent, {
-    providers: [
-        provideHttpClient(), // added!
-    ]
+  providers: [
+    provideHttpClient(), // added!
+  ],
 }).catch((err) => console.error(err));
 ```
 
@@ -111,14 +111,15 @@ Now my goal is to show all the places from `places.json` into `AvailablePlacesCo
 In `ngOnInit()` (this will be executed once the component is ready), send the requests to `/places` (according to `app.get("/places", async (req, res) => {}` in `app.js`):
 
 ```ts
-export class AvailablePlacesComponent implements OnInit{
+export class AvailablePlacesComponent implements OnInit {
   places = signal<Place[] | undefined>(undefined);
   private httpClient = inject(HttpClient); // added!
 
   ngOnInit(): void {
-    this.httpClient.get('http://localhost:3000/places') // added!
+    this.httpClient
+      .get("http://localhost:3000/places") // added!
       .subscribe({
-        next: response => console.log(response)
+        next: (response) => console.log(response),
       });
   }
 }
@@ -161,18 +162,18 @@ Now it prints the `response` object with a property, `places`:
 Then remember to `unsubscribe` but here technically I don't need to do it as `this.httpClient.get` by default only emits one value:
 
 ```ts
-export class AvailablePlacesComponent implements OnInit{
+export class AvailablePlacesComponent implements OnInit {
   places = signal<Place[] | undefined>(undefined);
   private httpClient = inject(HttpClient);
   private destroyRef = inject(DestroyRef); // added!
 
   ngOnInit(): void {
-    const subscription = this.httpClient.get('http://localhost:3000/places')
-      .subscribe({
-        next: response => console.log(response)
-      });
+    const subscription = this.httpClient.get("http://localhost:3000/places").subscribe({
+      next: (response) => console.log(response),
+    });
 
-    this.destroyRef.onDestroy(() => { // added!
+    this.destroyRef.onDestroy(() => {
+      // added!
       subscription.unsubscribe();
     });
   }
@@ -182,15 +183,16 @@ export class AvailablePlacesComponent implements OnInit{
 Also, currently the `response` type is just `(parameter) response: Object`. To give it a type I can add this `<Place[]>`:
 
 ```ts
-export class AvailablePlacesComponent implements OnInit{
+export class AvailablePlacesComponent implements OnInit {
   places = signal<Place[] | undefined>(undefined);
   private httpClient = inject(HttpClient);
   private destroyRef = inject(DestroyRef);
 
   ngOnInit(): void {
-    const subscription = this.httpClient.get<{ places: Place[] }>('http://localhost:3000/places') // added!
+    const subscription = this.httpClient
+      .get<{ places: Place[] }>("http://localhost:3000/places") // added!
       .subscribe({
-        next: response => console.log(response.places) // updated!
+        next: (response) => console.log(response.places), // updated!
       });
 
     this.destroyRef.onDestroy(() => {
@@ -287,20 +289,21 @@ Constructs a GET request that interprets the body as JSON and returns the respon
 So other than `url` i.e. 'http://localhost:3000/places', I can add this `option` object with `observe` property like the below to get `response` object. In layman term, I'm `observing` the `response`:
 
 ```ts
-export class AvailablePlacesComponent implements OnInit{
+export class AvailablePlacesComponent implements OnInit {
   places = signal<Place[] | undefined>(undefined);
   private httpClient = inject(HttpClient);
   private destroyRef = inject(DestroyRef);
 
   ngOnInit(): void {
-    const subscription = this.httpClient.get<{ places: Place[] }>('http://localhost:3000/places', {
-      observe: 'response' // added!
-    })
+    const subscription = this.httpClient
+      .get<{ places: Place[] }>("http://localhost:3000/places", {
+        observe: "response", // added!
+      })
       .subscribe({
-        next: response => {
+        next: (response) => {
           console.log(response);
           console.log(response.body?.places); // pay attention!
-        }
+        },
       });
 
     this.destroyRef.onDestroy(() => {
@@ -325,16 +328,15 @@ url: "http://localhost:3000/places"
 But this is just a demo. I'm going back to just see the response data like this:
 
 ```ts
-export class AvailablePlacesComponent implements OnInit{
+export class AvailablePlacesComponent implements OnInit {
   places = signal<Place[] | undefined>(undefined);
   private httpClient = inject(HttpClient);
   private destroyRef = inject(DestroyRef);
 
   ngOnInit(): void {
-    const subscription = this.httpClient.get<{ places: Place[] }>('http://localhost:3000/places')
-      .subscribe({
-        next: response => console.log(response.places) // updated!
-      });
+    const subscription = this.httpClient.get<{ places: Place[] }>("http://localhost:3000/places").subscribe({
+      next: (response) => console.log(response.places), // updated!
+    });
 
     this.destroyRef.onDestroy(() => {
       subscription.unsubscribe();
@@ -376,18 +378,17 @@ The output of `console.log(response.places)` is like this:
 Once the `response` data is available, I use it to set the signal, `places`:
 
 ```ts
-export class AvailablePlacesComponent implements OnInit{
+export class AvailablePlacesComponent implements OnInit {
   places = signal<Place[] | undefined>(undefined);
   private httpClient = inject(HttpClient);
   private destroyRef = inject(DestroyRef);
 
   ngOnInit(): void {
-    const subscription = this.httpClient.get<{ places: Place[] }>('http://localhost:3000/places')
-      .subscribe({
-        next: response => {
-          this.places.set(response.places); // updated!
-        }
-      });
+    const subscription = this.httpClient.get<{ places: Place[] }>("http://localhost:3000/places").subscribe({
+      next: (response) => {
+        this.places.set(response.places); // updated!
+      },
+    });
 
     this.destroyRef.onDestroy(() => {
       subscription.unsubscribe();
@@ -405,21 +406,23 @@ The `map` operator will take this one emitted value, `response`, and make the `r
 So the `response` becomes just the `places`:
 
 ```ts
-export class AvailablePlacesComponent implements OnInit{
+export class AvailablePlacesComponent implements OnInit {
   places = signal<Place[] | undefined>(undefined);
   private httpClient = inject(HttpClient);
   private destroyRef = inject(DestroyRef);
 
   ngOnInit(): void {
-    const subscription = this.httpClient.get<{ places: Place[] }>('http://localhost:3000/places')
+    const subscription = this.httpClient
+      .get<{ places: Place[] }>("http://localhost:3000/places")
       .pipe(
-        map(response => response.places) // added!
+        map((response) => response.places), // added!
       )
       .subscribe({
-        next: places => {           // updated!
-            console.log(places);
-            this.places.set(places);
-        }
+        next: (places) => {
+          // updated!
+          console.log(places);
+          this.places.set(places);
+        },
       });
 
     this.destroyRef.onDestroy(() => {
@@ -461,7 +464,7 @@ So now on the UI, the `places` are able to be populated like this:
 
 ![Project12-screenshot2](/01-starting-project-section-12/section12-demo/Project-12-2026-09-13-1.png)
 
-## Showing a Loading Fallback 
+## Showing a Loading Fallback
 
 In the `AvailablePlacesComponent`, in the `subscribe` add this `complete` function (which is a callback function that gets called by the producer if and when it has no more values to provide, and no error has happened).
 
@@ -470,7 +473,7 @@ This `complete` function only runs once, once the observable and the offered req
 Add a `isLoading` signal.
 
 ```ts
-export class AvailablePlacesComponent implements OnInit{
+export class AvailablePlacesComponent implements OnInit {
   places = signal<Place[] | undefined>(undefined);
   private httpClient = inject(HttpClient);
   private destroyRef = inject(DestroyRef);
@@ -478,12 +481,11 @@ export class AvailablePlacesComponent implements OnInit{
 
   ngOnInit(): void {
     this.isLoading.set(true); // added
-    const subscription = this.httpClient.get<{ places: Place[] }>('http://localhost:3000/places')
-      .pipe(
-        map(response => response.places)
-      )
+    const subscription = this.httpClient
+      .get<{ places: Place[] }>("http://localhost:3000/places")
+      .pipe(map((response) => response.places))
       .subscribe({
-        next: places => {
+        next: (places) => {
           this.places.set(places);
         },
         complete: () => this.isLoading.set(false), // added
@@ -501,12 +503,11 @@ And add a conditional block in the template given the value of `isLoading()` sig
 ```html
 <app-places-container title="Available Places">
   @if (isLoading()) {
-    <p class="fallback-text">Loading available places...</p>
-  }
-  @if (places()) {
-    <app-places [places]="places()!" />
+  <p class="fallback-text">Loading available places...</p>
+  } @if (places()) {
+  <app-places [places]="places()!" />
   } @else if (places()?.length === 0) {
-    <p class="fallback-text">Unfortunately, no places could be found.</p>
+  <p class="fallback-text">Unfortunately, no places could be found.</p>
   }
 </app-places-container>
 ```
@@ -539,7 +540,6 @@ This says: "When the HTTP response arrives, take only the `places` field from it
 
 `subscribe()` is what actually triggers the action. For an HTTP Observable, this is the moment the real HTTP request is sent. Before `subscribe()`, nothing happens at all. This is different from a Promise, which starts running as soon as you create it.
 
-
 ### What to call `next`, `error`, `complete`
 
 The object you pass to `subscribe()` is called an Observer. `next`, `error`, and `complete` are its handler functions (also called, `callbacks`). Each one reacts to a different kind of notification from the Observable:
@@ -550,7 +550,6 @@ The object you pass to `subscribe()` is called an Observer. `next`, `error`, and
 
 In my code, `next` saves the places into my signal, and `complete` turns off the `isLoading` flag once the stream has finished.
 
-
 ## Concept revisit - `callback`
 
 A callback is a function you hand to another function. It does not run right away. It runs later, when something happens. Think of it like leaving your phone number with a shop. They call you back when your order is ready. You do not wait at the counter.
@@ -558,64 +557,71 @@ A callback is a function you hand to another function. It does not run right awa
 In code, these are the common cases where a function is treated as a `callback`:
 
 - Event handlers. A function passed to `addEventListener` or an `onClick` prop. It runs when the user clicks, types, or scrolls.
-    - For example:
-    ```ts
-    // Plain DOM
-    document.getElementById('myButton')
-    .addEventListener('click', () => {
-        console.log('Button was clicked');
-    });
+  - For example:
 
-    // React / Angular style prop
-    <button onClick={() => console.log('Button was clicked')}>
-    Click me
-    </button>
-    ```
-    - In both cases, the arrow function is the `callback`. The browser (or the framework) holds onto it and only runs it when the user actually clicks. Nothing happens at the time you write the code.
+  ```ts
+  // Plain DOM
+  document.getElementById('myButton')
+  .addEventListener('click', () => {
+      console.log('Button was clicked');
+  });
+
+  // React / Angular style prop
+  <button onClick={() => console.log('Button was clicked')}>
+  Click me
+  </button>
+  ```
+
+  - In both cases, the arrow function is the `callback`. The browser (or the framework) holds onto it and only runs it when the user actually clicks. Nothing happens at the time you write the code.
+
 - Async operations. A function passed to something like `setTimeout`, a file read, or a network request. It runs when the timer ends or the data arrives.
-    - For example:
-    ```ts
-    // setTimeout
-    setTimeout(() => {
-    console.log('3 seconds have passed');
-    }, 3000);
-    ```
-    - For `setTimeout`, the `callback` runs once the timer finishes.
-- Array methods. A function passed to `map`, `filter`, `forEach`, or `reduce`. It runs once for each item in the array. 
-    - Note: `map`, `filter`, `forEach`, and `reduce` are array methods that accept a `callback` as an argument. The function you pass into them is the `callback`. 
-    - For example:
-    ```ts
-    const numbers = [1, 2, 3, 4];
+  - For example:
+  ```ts
+  // setTimeout
+  setTimeout(() => {
+    console.log("3 seconds have passed");
+  }, 3000);
+  ```
 
-    // forEach: runs the callback for each item, returns nothing
-    numbers.forEach(num => console.log(num));
-    // logs: 1, 2, 3, 4
+  - For `setTimeout`, the `callback` runs once the timer finishes.
+- Array methods. A function passed to `map`, `filter`, `forEach`, or `reduce`. It runs once for each item in the array.
+  - Note: `map`, `filter`, `forEach`, and `reduce` are array methods that accept a `callback` as an argument. The function you pass into them is the `callback`.
+  - For example:
 
-    // map: runs the callback for each item, builds a new array from the results
-    const doubled = numbers.map(num => num * 2);
-    // doubled = [2, 4, 6, 8]
+  ```ts
+  const numbers = [1, 2, 3, 4];
 
-    // filter: runs the callback for each item, keeps items where it returns true
-    const evens = numbers.filter(num => num % 2 === 0);
-    // evens = [2, 4]
+  // forEach: runs the callback for each item, returns nothing
+  numbers.forEach((num) => console.log(num));
+  // logs: 1, 2, 3, 4
 
-    // reduce: runs the callback for each item, builds up a single result
-    const total = numbers.reduce((sum, num) => sum + num, 0);
-    // total = 10
-    ```
+  // map: runs the callback for each item, builds a new array from the results
+  const doubled = numbers.map((num) => num * 2);
+  // doubled = [2, 4, 6, 8]
+
+  // filter: runs the callback for each item, keeps items where it returns true
+  const evens = numbers.filter((num) => num % 2 === 0);
+  // evens = [2, 4]
+
+  // reduce: runs the callback for each item, builds up a single result
+  const total = numbers.reduce((sum, num) => sum + num, 0);
+  // total = 10
+  ```
+
 - Promise chains. The functions inside `.then()` and `.catch()`. They run after a `promise` resolves or rejects.
-    - For example:
-    ```ts
-    fetch('http://localhost:3000/places')
-    .then(response => response.json())
-    .then(data => {
-        console.log('Places:', data.places);
+  - For example:
+  ```ts
+  fetch("http://localhost:3000/places")
+    .then((response) => response.json())
+    .then((data) => {
+      console.log("Places:", data.places);
     })
-    .catch(error => {
-        console.error('Request failed:', error);
+    .catch((error) => {
+      console.error("Request failed:", error);
     });
-    ```
-    - Each function inside `.then()` is a `callback` that runs once the `promise` before it resolves successfully. The function inside `.catch()` is a `callback` that runs only if something in the chain rejects, similar to how `error` works in your RxJS example.
+  ```
+
+  - Each function inside `.then()` is a `callback` that runs once the `promise` before it resolves successfully. The function inside `.catch()` is a `callback` that runs only if something in the chain rejects, similar to how `error` works in your RxJS example.
 
 The common thread is this: if a function is passed as an argument, and something else decides when to run it, that function is a `callback`.
 
@@ -640,26 +646,26 @@ Now in the frontend browser's dev tool, I can see `ERROR HttpErrorResponse`.
 Next, in `AvailablePlacesComponent`, use the `error` function to set the `error` signal with the error value it receives from the `this.httpClient.get` observable:
 
 ```ts
-export class AvailablePlacesComponent implements OnInit{
+export class AvailablePlacesComponent implements OnInit {
   places = signal<Place[] | undefined>(undefined);
   private httpClient = inject(HttpClient);
   private destroyRef = inject(DestroyRef);
   isLoading = signal<boolean>(false);
-  error = signal<string>('');  // added!
+  error = signal<string>(""); // added!
 
   ngOnInit(): void {
     this.isLoading.set(true);
-    const subscription = this.httpClient.get<{ places: Place[] }>('http://localhost:3000/places')
-      .pipe(
-        map(response => response.places)
-      )
+    const subscription = this.httpClient
+      .get<{ places: Place[] }>("http://localhost:3000/places")
+      .pipe(map((response) => response.places))
       .subscribe({
-        next: places => {
+        next: (places) => {
           this.places.set(places);
         },
-        error: (error) => {       // added!
-        //   this.error.set(error);  // instead of use error directly which is an object
-            this.error.set(error.message);  // use its message which should contain a string value.
+        error: (error) => {
+          // added!
+          //   this.error.set(error);  // instead of use error directly which is an object
+          this.error.set(error.message); // use its message which should contain a string value.
         },
         complete: () => this.isLoading.set(false),
       });
@@ -676,23 +682,18 @@ Then, update the `AvailablePlacesComponent` template with the `error()` signal:
 ```html
 <app-places-container title="Available Places">
   @if (isLoading() && !error()) {
-    <p class="fallback-text">Loading available places...</p>
-  }
-
-  @if (error()) {
-    <p class="fallback-text">Error: {{ error() }}</p>
-  }
-  
-  @if (places()) {
-    <app-places [places]="places()!" />
+  <p class="fallback-text">Loading available places...</p>
+  } @if (error()) {
+  <p class="fallback-text">Error: {{ error() }}</p>
+  } @if (places()) {
+  <app-places [places]="places()!" />
   } @else if (places()?.length === 0) {
-    <p class="fallback-text">Unfortunately, no places could be found.</p>
+  <p class="fallback-text">Unfortunately, no places could be found.</p>
   }
 </app-places-container>
 ```
 
 So now the UI will show `Error: Http failure response for http://localhost:3000/places: 500 Internal Server Error`:
-
 
 ![Project12-screenshot4](/01-starting-project-section-12/section12-demo/Project-12-2026-09-16-1.png)
 
@@ -707,31 +708,35 @@ But to make my observer function leaner, I can use `catchError` as the 2nd argum
 So this way seems more complicated, but it helped getting the error transformation logic out of the observer function.
 
 ```ts
-export class AvailablePlacesComponent implements OnInit{
+export class AvailablePlacesComponent implements OnInit {
   places = signal<Place[] | undefined>(undefined);
   private httpClient = inject(HttpClient);
   private destroyRef = inject(DestroyRef);
   isLoading = signal<boolean>(false);
-  error = signal<string>('');
+  error = signal<string>("");
 
   ngOnInit(): void {
     this.isLoading.set(true);
-    const subscription = this.httpClient.get<{ places: Place[] }>('http://localhost:3000/places')
+    const subscription = this.httpClient
+      .get<{ places: Place[] }>("http://localhost:3000/places")
       .pipe(
-        map(response => response.places),
-        catchError(error => {  // look!
-          console.log('Error fetching places:', error); // logging the original HttpResponse object
-          return throwError(   // look!
-            () => new Error('Failed to fetch places. Please try again later.')
+        map((response) => response.places),
+        catchError((error) => {
+          // look!
+          console.log("Error fetching places:", error); // logging the original HttpResponse object
+          return throwError(
+            // look!
+            () => new Error("Failed to fetch places. Please try again later."),
           );
-        })
+        }),
       )
       .subscribe({
-        next: places => {
+        next: (places) => {
           this.places.set(places);
         },
-        error: (error: Error) => {  // added the type!
-          this.error.set(error.message);  // updated the error signal with this: 
+        error: (error: Error) => {
+          // added the type!
+          this.error.set(error.message); // updated the error signal with this:
           // console.log('this error: ', this.error());
           // That logging the message Failed to fetch places. Please try again later.
         },
@@ -754,6 +759,7 @@ After this exercise, remove the temporary server 500 error from the GET /places 
 ## Sending data to backend
 
 This exercise helps me practice how to send data to the backend:
+
 - Click on a place card.
 - Trigger a put request (send the request with an id, which is a `placeId` in the existing places list).
 - Write the clicked place data into `data` folder > `user-places.json`, which represents a datatable in the database that stores the data of the favorite places a user selected.
@@ -770,11 +776,10 @@ app.put("/user-places", async (req, res) => {
 `PlacesComponent` will emit the clicked place card from `onSelectPlace()`. Its template has a button click listener:
 
 ```html
-  @for (place of places(); track place.id) {
-    <li class="place-item">
-      <button (click)="onSelectPlace(place)">
-        ...
-    }
+@for (place of places(); track place.id) {
+<li class="place-item">
+  <button (click)="onSelectPlace(place)">... }</button>
+</li>
 ```
 
 So, when each place item is clicked, the `place` data is sent out to the parent component `AvailablePlacesComponent`:
@@ -804,16 +809,17 @@ So, in `AvailablePlacesComponent`, its `onSelectPlace()` can log this `$event` i
 ```
 
 Log in the Dev Tool > Console Tab:
+
 ```json
 {
-    "id": "p1",
-    "title": "Forest Waterfall",
-    "image": {
-        "src": "forest-waterfall.jpg",
-        "alt": "A tranquil forest with a cascading waterfall amidst greenery."
-    },
-    "lat": 44.5588,
-    "lon": -80.344
+  "id": "p1",
+  "title": "Forest Waterfall",
+  "image": {
+    "src": "forest-waterfall.jpg",
+    "alt": "A tranquil forest with a cascading waterfall amidst greenery."
+  },
+  "lat": 44.5588,
+  "lon": -80.344
 }
 ```
 
@@ -840,7 +846,7 @@ There must be a `placeId` property in this request body which is in the JSON for
 
 ```ts
 {
-    placeId: selectedPlace.id
+  placeId: selectedPlace.id;
 }
 ```
 
@@ -851,9 +857,11 @@ Coz I need to `subscribe` to the `this.httpClient.put()` request to trigger it!
 If I don't care about the response of that put request, I can just stop here `.subscribe()`:
 
 ```ts
-this.httpClient.put('http://localhost:3000/user-places', { 
-    placeId: selectedPlace.id 
-}).subscribe();
+this.httpClient
+  .put("http://localhost:3000/user-places", {
+    placeId: selectedPlace.id,
+  })
+  .subscribe();
 ```
 
 Or I can add an observer object, and define what will happen once the request is complete (`complete`), or when a new value is emitted from the observable like a `response` (`next`).
@@ -864,8 +872,8 @@ So I update the put request as such:
   onSelectPlace(selectedPlace: Place) {
     console.log('=== AvailablePlacesComponent === onSelectPlace: ', selectedPlace);
 
-    this.httpClient.put('http://localhost:3000/user-places', { 
-      placeId: selectedPlace.id 
+    this.httpClient.put('http://localhost:3000/user-places', {
+      placeId: selectedPlace.id
     }).subscribe({
       next: (response) => console.log('User places:', response),
       complete: () => console.log('Place added to user places successfully.'),
@@ -876,7 +884,7 @@ So I update the put request as such:
 Now I click on the place card, it prints this in the Dev Tool > Console Tab:
 
 ```
-Place added to user places: 
+Place added to user places:
 {
     "userPlaces": [
         {
@@ -901,28 +909,28 @@ And when there are multiple clicks on different place cards, the `userPlaces` ar
 
 ```json
 {
-    "userPlaces": [
-        {
-            "id": "p1",
-            "title": "Forest Waterfall",
-            "image": {
-                "src": "forest-waterfall.jpg",
-                "alt": "A tranquil forest with a cascading waterfall amidst greenery."
-            },
-            "lat": 44.5588,
-            "lon": -80.344
-        },
-        {
-            "id": "p2",
-            "title": "Sahara Desert Dunes",
-            "image": {
-                "src": "desert-dunes.jpg",
-                "alt": "Golden dunes stretching to the horizon in the Sahara Desert."
-            },
-            "lat": 25,
-            "lon": 0
-        }
-    ]
+  "userPlaces": [
+    {
+      "id": "p1",
+      "title": "Forest Waterfall",
+      "image": {
+        "src": "forest-waterfall.jpg",
+        "alt": "A tranquil forest with a cascading waterfall amidst greenery."
+      },
+      "lat": 44.5588,
+      "lon": -80.344
+    },
+    {
+      "id": "p2",
+      "title": "Sahara Desert Dunes",
+      "image": {
+        "src": "desert-dunes.jpg",
+        "alt": "Golden dunes stretching to the horizon in the Sahara Desert."
+      },
+      "lat": 25,
+      "lon": 0
+    }
+  ]
 }
 ```
 
@@ -946,10 +954,7 @@ app.put("/user-places", async (req, res) => {
     updatedUserPlaces = [...userPlacesData, place];
   }
 
-  await fs.writeFile(
-    "./data/user-places.json",
-    JSON.stringify(updatedUserPlaces)
-  );
+  await fs.writeFile("./data/user-places.json", JSON.stringify(updatedUserPlaces));
 
   res.status(200).json({ userPlaces: updatedUserPlaces });
 });
@@ -968,7 +973,7 @@ Here are the tabs in the Dev Tool > Network Tab:
 And `user-places.json` show the newly clicked-to-update object here:
 
 ```json
-[{"id":"p1","title":"Forest Waterfall","image":{"src":"forest-waterfall.jpg","alt":"A tranquil forest with a cascading waterfall amidst greenery."},"lat":44.5588,"lon":-80.344}]
+[{ "id": "p1", "title": "Forest Waterfall", "image": { "src": "forest-waterfall.jpg", "alt": "A tranquil forest with a cascading waterfall amidst greenery." }, "lat": 44.5588, "lon": -80.344 }]
 ```
 
 ## More data fetching
@@ -983,34 +988,33 @@ export class UserPlacesComponent {
   private httpClient = inject(HttpClient);
   private destroyRef = inject(DestroyRef);
   isLoading = signal<boolean>(false);
-  error = signal<string>('');
+  error = signal<string>("");
 
-   ngOnInit(): void {
-      this.isLoading.set(true);
-      const subscription = this.httpClient.get<{ places: Place[] }>('http://localhost:3000/user-places')
-        .pipe(
-          map(response => response.places),
-          catchError(error => {
-            console.log('Error fetching places:', error);
-            return throwError(
-              () => new Error('Failed to fetch your favorite places. Please try again later.')
-            );
-          })
-        )
-        .subscribe({
-          next: places => {
-            this.places.set(places);
-          },
-          error: (error: Error) => {
-            this.error.set(error.message);
-          },
-          complete: () => this.isLoading.set(false),
-        });
-  
-      this.destroyRef.onDestroy(() => {
-        subscription.unsubscribe();
+  ngOnInit(): void {
+    this.isLoading.set(true);
+    const subscription = this.httpClient
+      .get<{ places: Place[] }>("http://localhost:3000/user-places")
+      .pipe(
+        map((response) => response.places),
+        catchError((error) => {
+          console.log("Error fetching places:", error);
+          return throwError(() => new Error("Failed to fetch your favorite places. Please try again later."));
+        }),
+      )
+      .subscribe({
+        next: (places) => {
+          this.places.set(places);
+        },
+        error: (error: Error) => {
+          this.error.set(error.message);
+        },
+        complete: () => this.isLoading.set(false),
       });
-    }
+
+    this.destroyRef.onDestroy(() => {
+      subscription.unsubscribe();
+    });
+  }
 }
 ```
 
@@ -1030,28 +1034,28 @@ For example, if I click a few places cards in the `Available Places` box on UI, 
 
 ```json
 [
-    {
-        "id":"p16",
-        "title":"Victoria Falls",
-        "image":{
-            "src":"victoria-falls.jpg",
-            "alt":"The powerful cascade of Victoria Falls, a natural wonder between Zambia and Zimbabwe."
-        },
-        "lat":-17.9243,
-        "lon":25.8572
+  {
+    "id": "p16",
+    "title": "Victoria Falls",
+    "image": {
+      "src": "victoria-falls.jpg",
+      "alt": "The powerful cascade of Victoria Falls, a natural wonder between Zambia and Zimbabwe."
     },
-    {
-        "id":"p17",
-        "title":"Machu Picchu",
-        "image":{
-            "src":"machu-picchu.jpg",
-            "alt":"The historic Incan citadel of Machu Picchu illuminated by the morning sun."
-        },
-        "lat":-13.1631,
-        "lon":-72.545
-    }
+    "lat": -17.9243,
+    "lon": 25.8572
+  },
+  {
+    "id": "p17",
+    "title": "Machu Picchu",
+    "image": {
+      "src": "machu-picchu.jpg",
+      "alt": "The historic Incan citadel of Machu Picchu illuminated by the morning sun."
+    },
+    "lat": -13.1631,
+    "lon": -72.545
+  }
 ]
-``` 
+```
 
 They will show up in the UI like this:
 
@@ -1065,7 +1069,7 @@ Update the existing `PlacesService` boilerplate code:
 
 ```ts
 @Injectable({
-  providedIn: 'root',
+  providedIn: "root",
 })
 export class PlacesService {
   private userPlaces = signal<Place[]>([]);
@@ -1091,7 +1095,7 @@ So `PlacesService` becomes:
 
 ```ts
 @Injectable({
-  providedIn: 'root',
+  providedIn: "root",
 })
 export class PlacesService {
   private userPlaces = signal<Place[]>([]);
@@ -1109,27 +1113,24 @@ export class PlacesService {
 
   // added a private method to fetch places from the backend
   private fetchPlaces() {
-    this.httpClient.get<{ places: Place[] }>('http://localhost:3000/user-places')
-        .pipe(
-          map(response => response.places),
-          catchError(error => {
-            console.log('Error fetching places:', error);
-            return throwError(
-              () => new Error('Failed to fetch your favorite places. Please try again later.')
-            );
-          })
-        )
+    this.httpClient.get<{ places: Place[] }>("http://localhost:3000/user-places").pipe(
+      map((response) => response.places),
+      catchError((error) => {
+        console.log("Error fetching places:", error);
+        return throwError(() => new Error("Failed to fetch your favorite places. Please try again later."));
+      }),
+    );
   }
-} 
+}
 ```
 
-Since `fetchPlaces()` is a private method, it's going to be called in `` and ``. 
+Since `fetchPlaces()` is a private method, it's going to be called in `and`.
 
 Now it takes in the `url` and `errorMessage` these two params like this:
 
 ```ts
 @Injectable({
-  providedIn: 'root',
+  providedIn: "root",
 })
 export class PlacesService {
   private userPlaces = signal<Place[]>([]);
@@ -1138,11 +1139,11 @@ export class PlacesService {
   loadedUserPlaces = this.userPlaces.asReadonly();
 
   loadAvailablePlaces() {
-    return this.fetchPlaces('http://localhost:3000/places', 'Failed to fetch available places. Please try again later.');
+    return this.fetchPlaces("http://localhost:3000/places", "Failed to fetch available places. Please try again later.");
   }
 
   loadUserPlaces() {
-    return this.fetchPlaces('http://localhost:3000/user-places', 'Failed to fetch your favorite places. Please try again later.');
+    return this.fetchPlaces("http://localhost:3000/user-places", "Failed to fetch your favorite places. Please try again later.");
   }
 
   addPlaceToUserPlaces(place: Place) {}
@@ -1151,16 +1152,13 @@ export class PlacesService {
 
   // added a private method to fetch places from the backend, and use it in loadAvailablePlaces and loadUserPlaces
   private fetchPlaces(url: string, errorMessage: string) {
-    return this.httpClient.get<{ places: Place[] }>(url)
-        .pipe(
-          map(response => response.places),
-          catchError(error => {
-            console.log('Error fetching places:', error);
-            return throwError(
-              () => new Error(errorMessage)
-            );
-          })
-        )
+    return this.httpClient.get<{ places: Place[] }>(url).pipe(
+      map((response) => response.places),
+      catchError((error) => {
+        console.log("Error fetching places:", error);
+        return throwError(() => new Error(errorMessage));
+      }),
+    );
   }
 }
 ```
@@ -1203,7 +1201,7 @@ That's the reason why it's common to see the http configuration is set in the se
 
 ```ts
 @Injectable({
-  providedIn: 'root',
+  providedIn: "root",
 })
 export class PlacesService {
   private userPlaces = signal<Place[]>([]);
@@ -1212,21 +1210,18 @@ export class PlacesService {
   loadedUserPlaces = this.userPlaces.asReadonly();
 
   loadAvailablePlaces() {
-    return this.fetchPlaces('http://localhost:3000/places', 'Failed to fetch available places. Please try again later.');
+    return this.fetchPlaces("http://localhost:3000/places", "Failed to fetch available places. Please try again later.");
   }
 
   // added a private method to fetch places from the backend, and use it in loadAvailablePlaces and loadUserPlaces
   private fetchPlaces(url: string, errorMessage: string) {
-    return this.httpClient.get<{ places: Place[] }>(url)
-        .pipe(
-          map(response => response.places),
-          catchError(error => {
-            console.log('Error fetching places:', error);
-            return throwError(
-              () => new Error(errorMessage)
-            );
-          })
-        )
+    return this.httpClient.get<{ places: Place[] }>(url).pipe(
+      map((response) => response.places),
+      catchError((error) => {
+        console.log("Error fetching places:", error);
+        return throwError(() => new Error(errorMessage));
+      }),
+    );
   }
 }
 ```
@@ -1251,15 +1246,15 @@ export class AvailablePlacesComponent implements OnInit{
 
 ```ts
 @Injectable({
-  providedIn: 'root',
+  providedIn: "root",
 })
 export class PlacesService {
   private httpClient = inject(HttpClient);
 
   addPlaceToUserPlaces(placeId: string) {
-    return this.httpClient.put('http://localhost:3000/user-places', { 
-      placeId: placeId // I can also just write placeId as the key and value are having the same name
-    })
+    return this.httpClient.put("http://localhost:3000/user-places", {
+      placeId: placeId, // I can also just write placeId as the key and value are having the same name
+    });
   }
 }
 ```
@@ -1291,7 +1286,6 @@ export class AvailablePlacesComponent implements OnInit{
 }
 ```
 
-
 Finally, `UserPlacesComponent` and its `onSelectPlace()` becomes:
 
 ```ts
@@ -1299,28 +1293,29 @@ export class UserPlacesComponent {
   places = signal<Place[] | undefined>(undefined);
   private destroyRef = inject(DestroyRef);
   isLoading = signal<boolean>(false);
-  error = signal<string>('');
+  error = signal<string>("");
   private placesService = inject(PlacesService);
 
-   ngOnInit(): void {
-      this.isLoading.set(true);
-      const subscription = this.placesService.loadUserPlaces() // updated!
-        .subscribe({
-          next: places => {
-            this.places.set(places);
-          },
-          error: (error: Error) => {
-            this.error.set(error.message);
-          },
-          complete: () => this.isLoading.set(false),
-        });
-  
-      this.destroyRef.onDestroy(() => {
-        subscription.unsubscribe();
+  ngOnInit(): void {
+    this.isLoading.set(true);
+    const subscription = this.placesService
+      .loadUserPlaces() // updated!
+      .subscribe({
+        next: (places) => {
+          this.places.set(places);
+        },
+        error: (error: Error) => {
+          this.error.set(error.message);
+        },
+        complete: () => this.isLoading.set(false),
       });
-    }
+
+    this.destroyRef.onDestroy(() => {
+      subscription.unsubscribe();
+    });
+  }
 }
-``` 
+```
 
 So eventually I'm using the `placesService` to fetch data and components only need to control the UI display.
 
@@ -1333,6 +1328,7 @@ For example, in `PlacesService`, there is `userPlaces` and it's exposed as a rea
 And I learned to use `tap` to update the `userPlaces` signal after it's fetched from `fetchPlaces()`.
 
 Note:
+
 - `pipe`: I can pipe here again even though I already piped in fetchPlaces, because the return value of fetchPlaces is an observable
 - `tap`: I can update the userPlaces signal with the fetched user places without subscribing here
 
@@ -1348,47 +1344,46 @@ export class PlacesService {
 
   loadUserPlaces() {
     return this.fetchPlaces(
-      'http://localhost:3000/user-places', 
+      'http://localhost:3000/user-places',
       'Failed to fetch your favorite places. Please try again later.'
     ).pipe( // I can pipe here again even though I already piped in fetchPlaces
       tap({
         next: (userPlaces) => this.userPlaces.set(userPlaces), // I can update the userPlaces signal without subscribing here
       })
     );
-  } 
+  }
 ...
 }
 ```
 
-Then, in `UserPlacesComponent`, I can replace the existing `places` signal in the `UserPlacesComponent` with the one from `PlacesService`, i.e. `this.placesService.loadedUserPlaces` so that now in the `UserPlacesComponent`, I only need to deal with the `error` and `complete` state of the fetched data: 
+Then, in `UserPlacesComponent`, I can replace the existing `places` signal in the `UserPlacesComponent` with the one from `PlacesService`, i.e. `this.placesService.loadedUserPlaces` so that now in the `UserPlacesComponent`, I only need to deal with the `error` and `complete` state of the fetched data:
 
 ```ts
 export class UserPlacesComponent {
   // places = signal<Place[] | undefined>(undefined); // this is replaced by the loadedUserPlaces signal in the PlacesService
   private destroyRef = inject(DestroyRef);
   isLoading = signal<boolean>(false);
-  error = signal<string>('');
+  error = signal<string>("");
   private placesService = inject(PlacesService);
   places = this.placesService.loadedUserPlaces; // loadedUserPlaces is a readonly signal, so I can use it directly in the template without worrying about accidentally modifying it
 
-   ngOnInit(): void {
-      this.isLoading.set(true);
-      const subscription = this.placesService.loadUserPlaces()
-        .subscribe({
-          // I don't need to update the places signal here because I already updated it in the PlacesService i.e. loadUserPlaces
-          // next: places => {
-          //   this.places.set(places);
-          // },
-          error: (error: Error) => {
-            this.error.set(error.message);
-          },
-          complete: () => this.isLoading.set(false),
-        });
-  
-      this.destroyRef.onDestroy(() => {
-        subscription.unsubscribe();
-      });
-    }
+  ngOnInit(): void {
+    this.isLoading.set(true);
+    const subscription = this.placesService.loadUserPlaces().subscribe({
+      // I don't need to update the places signal here because I already updated it in the PlacesService i.e. loadUserPlaces
+      // next: places => {
+      //   this.places.set(places);
+      // },
+      error: (error: Error) => {
+        this.error.set(error.message);
+      },
+      complete: () => this.isLoading.set(false),
+    });
+
+    this.destroyRef.onDestroy(() => {
+      subscription.unsubscribe();
+    });
+  }
 }
 ```
 
@@ -1403,8 +1398,8 @@ In `PlacesService`;
 ```ts
 // old
 addPlaceToUserPlaces(placeId: string) {
-    return this.httpClient.put('http://localhost:3000/user-places', { 
-        placeId: placeId 
+    return this.httpClient.put('http://localhost:3000/user-places', {
+        placeId: placeId
     })
 }
 
@@ -1477,14 +1472,12 @@ app.put("/user-places", async (req, res) => {
 
   let updatedUserPlaces = userPlacesData;
 
-  if (!userPlacesData.some((p) => p.id === place.id)) { // will not get to this line of code to update the user-places.json!
+  if (!userPlacesData.some((p) => p.id === place.id)) {
+    // will not get to this line of code to update the user-places.json!
     updatedUserPlaces = [...userPlacesData, place];
   }
 
-  await fs.writeFile(
-    "./data/user-places.json",
-    JSON.stringify(updatedUserPlaces)
-  );
+  await fs.writeFile("./data/user-places.json", JSON.stringify(updatedUserPlaces));
 
   res.status(200).json({ userPlaces: updatedUserPlaces });
 });
@@ -1545,3 +1538,107 @@ Next, I can add an extra check to only add the place to the userPlaces signal if
 Then, remove this temporary code `return res.status(500).json({ message: "This is a simulated error for testing purposes." });` from `app.put("/user-places")` in `app.js`.
 
 In the UI, it should allow User to add an available place by clicking a place card, and it will be added to the `Your Favorite Places` area correctly without duplicates.
+
+## Implementing App-wide Error Management
+
+Source code ![here](https://github.com/mschwarzmueller/angular-complete-guide-course-resources/blob/main/attachments/12-http/shared.zip).
+
+The key is to use the `ErrorService` to tell the app that this `ErrorModalComponent` should be displayed.
+
+First, prepare a server error in the backend.
+
+In `app.js`:
+
+```js
+app.put("/user-places", async (req, res) => {
+  const placeId = req.body.placeId;
+
+  return res.status(500).json(); // temporary error to test error handling in the frontend
+});
+```
+
+Next, take a look at the source code. In `ErrorService`, there is `error` property that exposts the `_error` signal as a readonly signal and `showError()` for setting the `_error` signal:
+
+```ts
+export class ErrorService {
+  private _error = signal('');
+
+  error = this._error.asReadonly(); // expose the error signal as a readonly signal to prevent external modification
+
+  showError(message: string) {
+    console.log(message);
+    this._error.set(message);
+  }
+
+  clearError() {
+    this._error.set('');
+  }
+}
+```
+
+Add this `ErrorService` to places that an error might occur.
+
+For example, in `PlacesService` and its `addPlaceToUserPlaces`, add this `this.errorService.showError()` to trigger the update of `error` signal in `ErrorService`, which will then trigger the display of `error` signal in the `AppComponent`: 
+
+```ts
+export class PlacesService {
+    private userPlaces = signal<Place[]>([]);
+    private httpClient = inject(HttpClient);
+    private errorService = inject(ErrorService);
+
+    addPlaceToUserPlaces(place: Place) {
+        const prevPlaces = this.userPlaces();
+
+        if (!prevPlaces.some(p => p.id === place.id)) {
+            this.userPlaces.set([ ...prevPlaces, place ]);
+        }
+
+        return this.httpClient.put('http://localhost:3000/user-places', {
+            placeId: place.id,
+        }).pipe(
+            catchError(error => {
+                this.userPlaces.set(prevPlaces);
+                this.errorService.showError('Failed to add place to your favorite places. Please try again later.'); // added!
+                return throwError(() => new Error('Failed to add place to your favorite places. Please try again later.'));
+            })
+        );
+    }
+}
+```
+
+At the app level, in `AppComponent`, allow the app has access to the `ErrorService` its error signal:
+
+```ts
+export class AppComponent {
+  private errorService = inject(ErrorService);
+
+  error = this.errorService.error; // expose the error signal from the ErrorService to the template
+}
+```
+
+Then, in the template of `AppComponent`, it will conditionally render `<app-error-modal title="An error occurred!" [message]="error()" />` depending on if `error()` has values:
+
+```html
+@if (error()) {
+  <app-error-modal title="An error occurred!" [message]="error()" />
+}
+
+<header>
+  <img src="logo.png" alt="Stylized globe" />
+  <h1>PlacePicker</h1>
+  <p>
+    Create your personal collection of places you would like to visit or you
+    have visited.
+  </p>
+</header>
+```
+
+### In the template, the brackets tell Angular whether the value is fixed text or code to run
+
+Without brackets: `title="An error occurred!"`, Angular treats the value as a plain string.
+
+With brackets: `[message]="error()"`, The brackets make it a property binding. Angular reads the value as a TypeScript expression. It calls error(), gets the current error text, and passes that result into message. When the error signal changes, Angular updates message again.
+
+So currently the error modal would look like this once User clicks a place card in the `Available Places` area to add the place into the `Your Favorite Places` area:
+
+![Project12-screenshot13](/01-starting-project-section-12/section12-demo/Project-12-2026-09-23-1.png)
