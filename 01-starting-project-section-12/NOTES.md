@@ -1642,3 +1642,113 @@ With brackets: `[message]="error()"`, The brackets make it a property binding. A
 So currently the error modal would look like this once User clicks a place card in the `Available Places` area to add the place into the `Your Favorite Places` area:
 
 ![Project12-screenshot13](/01-starting-project-section-12/section12-demo/Project-12-2026-09-23-1.png)
+
+###  Details of `ModalComponent` > `ErrorModalComponent`
+
+`ErrorModalComponent` template (`app-error-modal`) is going to be wrapped inside the `ModalComponent` template (`app-modal`).
+
+This is `ErrorModalComponent` template:
+
+```html
+<app-modal>
+  <div class="error">
+    <h2>{{ title() }}</h2>
+    <p>{{ message() }}</p>
+
+    <div class="confirmation-actions">
+      <button class="button" (click)="onClearError()">Okay</button>
+    </div>
+  </div>
+</app-modal>
+```
+
+`ModalComponent` template is using the browser element `dialog`, and `<ng-content />` will be replaced with `<div class="error">...</div>` from the `ErrorModalComponent`.
+
+This is `ModalComponent` template:
+
+```html
+<dialog #dialog>
+  <ng-content />
+</dialog>
+```
+
+And `ModalComponent` is using the built-in method, `showModal()`, to open the dialog:
+
+```ts
+export class ModalComponent implements AfterViewInit {
+  private dialogEl = viewChild.required<ElementRef<HTMLDialogElement>>('dialog');
+
+  ngAfterViewInit(): void {
+    this.dialogEl().nativeElement.showModal();
+  }
+}
+```
+
+#### `viewChild.required<ElementRef<HTMLDialogElement>>('dialog')`
+
+This finds the element with the #dialog name tag. Let's break it into parts:
+
+- `viewChild(...)` is the newer, signal based way to query an element (Angular 17.2 and later). It returns a signal, so you read it by calling it: `this.dialogEl()`.
+- `.required` tells Angular "this element must always exist". Because of this, TypeScript knows the value is never `undefined`, so you don't need `?` checks.
+- `ElementRef` is a wrapper around the real browser element. `.nativeElement` unwraps it and gives you the actual `<dialog>` DOM element.
+
+#### `ngAfterViewInit()` and `showModal()`
+
+A `<dialog>` is hidden by default. Calling `showModal()` opens it in "modal" mode. In this mode the browser:
+
+- puts the dialog on top of everything else on the page
+- adds a dark backdrop behind it (you can style it with `::backdrop` in CSS)
+- blocks clicks on the page behind it
+- lets the user close it with the `Escape` key
+
+
+#### `ngAfterViewInit` vs `ngOnInit`
+
+A simple rule to remember:
+
+- Need data? Use `ngOnInit`.
+- Need the page elements? Use `ngAfterViewInit`.
+
+Analogy: Think of building a house.
+
+- `ngOnInit` is when the plans are ready and the owner's details have arrived. But the walls are not built yet.
+- `ngAfterViewInit` is when the walls are built. Now you can hang a picture on a wall.
+
+ngOnInit
+
+Angular calls this once, after it has set the component's inputs for the first time. It runs before the template is turned into real elements on the page.
+
+Good for:
+
+- reading input values (like `title()` or `message()`)
+- starting data loading, for example calling an API service
+- setting up starting values
+
+Not good for: touching elements in the template. They don't exist yet.
+
+ngAfterViewInit
+
+Angular calls this once, after it has built the component's template and the templates of its child components. The real DOM elements now exist.
+
+Good for:
+
+- working with elements you found with `viewChild`
+- calling browser methods on elements, like `showModal()`, `focus()` or measuring size
+- starting a third party library that needs a real element, like a chart
+
+The order
+
+For one component, Angular runs the hooks in this order:
+
+```
+constructor
+ngOnChanges       (only if the component has inputs)
+ngOnInit
+ngDoCheck
+ngAfterContentInit
+ngAfterContentChecked
+ngAfterViewInit
+ngAfterViewChecked
+```
+
+So `ngOnInit` always runs before `ngAfterViewInit`.
