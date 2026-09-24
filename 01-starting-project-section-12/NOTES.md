@@ -1752,3 +1752,129 @@ ngAfterViewChecked
 ```
 
 So `ngOnInit` always runs before `ngAfterViewInit`.
+
+## Practice: Sending DELETE Requests
+
+Whenever User click one of the place cards in the `Your Favorite Places` area, remove that place card.
+
+Call the `removeUserPlace()` in the `PlacesService`.
+
+Make sure the delete request is sent to that path with the id of the place card (i.e. the `app.delete("/user-places/:id")` path in `app.js`).
+
+Try to add error handling and the optimistic updating as I practiced in `appPlaceToUserPlaces()` in the `PlacesService`.
+
+For example:
+
+```ts
+  removeUserPlace(place: Place) {
+    const prevPlaces = this.userPlaces();
+
+    // optimistically remove the place from the userPlaces signal
+    if (prevPlaces.some(p => p.id === place.id)) {
+      this.userPlaces.set(prevPlaces.filter(p => p.id !== place.id)); // filter means keeping all the places that are not the one we want to remove
+    }
+
+    return this.httpClient.delete(`http://localhost:3000/user-places/${place.id}`)
+    .pipe(
+      catchError(error => {
+        this.userPlaces.set(prevPlaces);
+        this.errorService.showError('Failed to remove place from your favorite places.');
+        return throwError(() => new Error('Failed to remove place from your favorite places.'));
+      })
+    );
+  }
+```
+
+And then make sure `this.placesService.removeUserPlace` is called in 
+
+When a place card is clicked and I want to capture that, use the `click` listener on the `button` in `PlacesComponent`:
+
+
+```html
+<ul>
+  @for (place of places(); track place.id) {
+    <li class="place-item">
+      <button (click)="onSelectPlace(place)">
+        <img
+          [src]="'http://localhost:3000/' + place.image.src"
+          [alt]="place.image.alt"
+        />
+        <h3>{{ place.title }}</h3>
+      </button>
+    </li>
+  }
+</ul>
+```
+
+The `click` event will call `onSelectPlace()` in `PlacesComponent`, which will then emit the `place` data to the parent, `UserPlacesComponent`, by the `output` function:
+
+```ts
+export class PlacesComponent {
+  places = input.required<Place[]>();
+  selectPlace = output<Place>();
+
+  onSelectPlace(place: Place) {
+    this.selectPlace.emit(place);
+  }
+}
+```
+
+
+Then, in the `UserPlacesComponent`, I can add this event binding, `(selectPlace)="onRemovePlace($event)"`, to the `<app-places />`.
+
+`selectPlace` is an event that the child component (`app-places`) sends out. When that happens, Angular runs your parent method `onRemovePlace`. `$event` holds the value the child sent, usually the selected `place`.
+
+```html
+<app-places-container title="Your Favorite Places">
+    ...
+
+  @if (places() && places()!.length > 0) {
+    <app-places [places]="places()!" (selectPlace)="onRemovePlace($event)"/>
+  } @else {
+    <p class="fallback-text">Unfortunately, no favorite places are found.</p>
+  }
+
+</app-places-container>
+```
+
+Then, `onRemovePlace()` will call `this.placesService.removeUserPlace()` with the `place` passed in.
+
+Remember to `subscribe` and then `destroy` the subscription:
+
+```ts
+export class UserPlacesComponent {
+  private destroyRef = inject(DestroyRef);
+  isLoading = signal<boolean>(false);
+  error = signal<string>('');
+  private placesService = inject(PlacesService);
+  places = this.placesService.loadedUserPlaces;
+
+  ...
+  
+  onRemovePlace(place: Place) {
+    const subscription = this.placesService.removeUserPlace(place).subscribe();
+
+    this.destroyRef.onDestroy(() => {
+      subscription.unsubscribe();
+    });
+  }
+}
+```
+
+Now I can successfully remove a `place` from the `Your Favorite Place` area like this:
+
+![Project12-screenshot14](/01-starting-project-section-12/section12-demo/Project-12-2026-09-24-1.png)
+
+If there's an error in the backend like I added the temp error server status here in `app.js`:
+
+```js
+app.delete("/user-places/:id", async (req, res) => {
+  const placeId = req.params.id;
+  
+  return res.status(500).json(); // temporary error to test error handling in the frontend
+}
+```
+
+UI will show this 'cannot remove the place' error dialog:
+
+![Project12-screenshot15](/01-starting-project-section-12/section12-demo/Project-12-2026-09-24-2.png)

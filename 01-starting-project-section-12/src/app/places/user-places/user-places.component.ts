@@ -19,18 +19,27 @@ export class UserPlacesComponent {
   private placesService = inject(PlacesService);
   places = this.placesService.loadedUserPlaces; // loadedUserPlaces is a readonly signal
 
-   ngOnInit(): void {
-      this.isLoading.set(true);
-      const subscription = this.placesService.loadUserPlaces()
-        .subscribe({
-          error: (error: Error) => {
-            this.error.set(error.message);
-          },
-          complete: () => this.isLoading.set(false),
-        });
-  
-      this.destroyRef.onDestroy(() => {
-        subscription.unsubscribe();
+  ngOnInit(): void {
+    this.isLoading.set(true);
+    
+    const subscription = this.placesService.loadUserPlaces()
+      .subscribe({
+        error: (error: Error) => {
+          this.error.set(error.message);
+        },
+        complete: () => this.isLoading.set(false),
       });
-    }
+
+    this.destroyRef.onDestroy(() => {
+      subscription.unsubscribe();
+    });
+  }
+  
+  onRemovePlace(place: Place) {
+    const subscription = this.placesService.removeUserPlace(place).subscribe();
+
+    this.destroyRef.onDestroy(() => {
+      subscription.unsubscribe();
+    });
+  }
 }

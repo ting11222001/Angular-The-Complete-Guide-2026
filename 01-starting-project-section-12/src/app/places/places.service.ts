@@ -49,13 +49,29 @@ export class PlacesService {
     }).pipe(
       catchError(error => {
         this.userPlaces.set(prevPlaces); // rollback the userPlaces signal to the previous state if the HTTP request fails
-        this.errorService.showError('Failed to add place to your favorite places. Please try again later.');
-        return throwError(() => new Error('Failed to add place to your favorite places. Please try again later.'));
+        this.errorService.showError('Failed to add place to your favorite places.');
+        return throwError(() => new Error('Failed to add place to your favorite places.'));
       })
     );
   }
 
-  removeUserPlace(place: Place) {}
+  removeUserPlace(place: Place) {
+    const prevPlaces = this.userPlaces();
+
+    // optimistically remove the place from the userPlaces signal
+    if (prevPlaces.some(p => p.id === place.id)) {
+      this.userPlaces.set(prevPlaces.filter(p => p.id !== place.id)); // filter means keeping all the places that are not the one we want to remove
+    }
+
+    return this.httpClient.delete(`http://localhost:3000/user-places/${place.id}`)
+    .pipe(
+      catchError(error => {
+        this.userPlaces.set(prevPlaces);
+        this.errorService.showError('Failed to remove place from your favorite places.');
+        return throwError(() => new Error('Failed to remove place from your favorite places.'));
+      })
+    );
+  }
 
   // added a private method to fetch places from the backend, and use it in loadAvailablePlaces and loadUserPlaces
   private fetchPlaces(url: string, errorMessage: string) {
