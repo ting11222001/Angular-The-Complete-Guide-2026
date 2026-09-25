@@ -1878,3 +1878,130 @@ app.delete("/user-places/:id", async (req, res) => {
 UI will show this 'cannot remove the place' error dialog:
 
 ![Project12-screenshot15](/01-starting-project-section-12/section12-demo/Project-12-2026-09-24-2.png)
+
+## Introducing HTTP Interceptors
+
+When a request is about to be sent or a response is about to arrive, interceptors can be used to do something then.
+
+First, register interceptors in `main.ts`.
+
+Additional configuration options can be provided by passing feature functions to `provideHttpClient`. For example, HTTP interceptors can be added using the `withInterceptors(...)` feature.
+
+`withInterceptors([])`: the array here can let us register all the interceptor functions that should be executed by Angular for any outgoing request or incoming response.
+
+`HttpRequest<unknown>`: make it clear that it could be any kind of request, transporting any kind of value. `HttpRequest<T>` is a generic class. The `T` is a placeholder for a type, and it describes the body you send with the request. It does not describe the response. `unknown` means the request body type is unknown. 
+
+For example, think of `HttpRequest` as a parcel you post. The parcel has an address (the URL), a method (like "express" or "standard", which is GET, POST and so on), and some labels (headers). The T is the note on the box that says what is inside. So `HttpRequest<User>` means "a parcel that carries a `User` object".
+
+```ts
+function loggingInterceptor(request: HttpRequest<unknown>, next: HttpHandlerFn) {
+}
+
+bootstrapApplication(AppComponent, {
+    providers: [
+        provideHttpClient(
+            withInterceptors([])
+        ),
+    ]
+}).catch((err) => console.error(err));
+```
+
+Then, to make sure the http request will continue AFTER the interceptor, I should call this `next` parameter as a function and pass the intercepted request to it.
+
+And also remember to pass the interceptor here, `withInterceptors([loggingInterceptor])`.
+
+So now `main.ts` looks like this:
+
+```ts
+function loggingInterceptor(request: HttpRequest<unknown>, next: HttpHandlerFn) {
+    console.log('Outgoing request:', request);
+    return next(request);
+}
+
+bootstrapApplication(AppComponent, {
+    providers: [
+        provideHttpClient(
+            withInterceptors([loggingInterceptor])
+        ),
+    ]
+}).catch((err) => console.error(err));
+```
+
+Open the Dev Tool > Console tab will be like this (there are two `GET` requests, one is for the available places and another for the user's favorite places):
+
+![Project12-screenshot15](/01-starting-project-section-12/section12-demo/Project-12-2026-09-25-1.png)
+
+To update the request, I can `clone` it and change something in the request like its header and forward that new `req` instead:
+
+```ts
+function loggingInterceptor(request: HttpRequest<unknown>, next: HttpHandlerFn) {
+    // TESTING:
+    const req = request.clone({
+        headers: request.headers.set('X-DEBUG', 'TESTING')
+    });
+    console.log('Outgoing request:', req);
+    return next(req);
+}
+
+bootstrapApplication(AppComponent, {
+    providers: [
+        provideHttpClient(
+            withInterceptors([loggingInterceptor])
+        ),
+    ]
+}).catch((err) => console.error(err));
+```
+
+This will break the app (because with the new header, the backend will not allow access anymore), but the Dev Tool > Network tab will show the request has X-Debug header with a value, `TESTING`:
+
+![Project12-screenshot16](/01-starting-project-section-12/section12-demo/Project-12-2026-09-25-2.png)
+
+I just commented out the testing code.
+
+The point is if one day I want to add headers to all the outgoing requests, I can do it here.
+
+## Introducing HTTP Response Interceptors
+
+Since `next()` will give me an observable that's wrapped around an HTTP event type of value.
+
+So I can call `pipe()` instead of `subscribe()` so that I can use `tap` to define my own observer that will execute my own code here. 
+
+I will simply wait for the next value to be emitted (which will be an event type of value), and check if it's a http response.
+
+If yes, then console log those values:
+
+```ts
+function loggingInterceptor(request: HttpRequest<unknown>, next: HttpHandlerFn) {
+    // TESTING:
+    // const req = request.clone({
+    //     headers: request.headers.set('X-DEBUG', 'TESTING')
+    // });
+    console.log('=== Outgoing request === request: ', request);
+    return next(request).pipe(
+        tap({
+            next: event => {
+                if (event.type === HttpEventType.Response) {
+                    console.log('=== Incoming response === event status: ', event.status);
+                    console.log('=== Incoming response === event body: ', event.body);
+                }
+            }
+        })
+    );
+}
+
+bootstrapApplication(AppComponent, {
+    providers: [
+        provideHttpClient(
+            withInterceptors([loggingInterceptor])
+        ),
+    ]
+}).catch((err) => console.error(err));
+```
+
+So in the UI, open the Dev Tool > Console Tab, I can see the `Incoming response` related logs like this:
+
+![Project12-screenshot17](/01-starting-project-section-12/section12-demo/Project-12-2026-09-25-3.png)
+
+The first response to arrive is from the `/places` endpoint.
+
+So this is how I can register a response interceptor, along with a request interceptor.
