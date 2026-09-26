@@ -23,3 +23,7 @@ Run up the angular app by `npm start` in the main project folder of this section
 ![Project13-screenshot1](/01-starting-project-section-13/section13-demo/Project-13-2026-09-26-1.png)
 
 ## Template-driven vs Reactive Forms
+
+`Template-driven`: setting up the form with the help of the component templates and register inputs with Angular. Easy to get started with but more limitations when the form gets complicated.
+
+`Reactive Forms`: setting up the form structure in my TypeScript code. Then, link that to the template elements, so Angular can be aware of which element is linked to which control in my TypeScript code. More verbose code on setup, but able to handle more complex forms.
