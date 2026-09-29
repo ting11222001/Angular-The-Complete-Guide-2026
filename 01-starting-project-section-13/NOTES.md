@@ -123,3 +123,105 @@ So do the same to the second input, i.e. the password:
   </div>
 </form>
 ```
+
+## Getting Access to the Angular-Managed Form
+
+Till this point, I haven't had access to this Angular managed form in the component yet.
+
+So, my next step is to add a template variable, `#form`, which will give me access to the HTML form element.
+
+Then, because of the `FormsModule` imported to the component, I can use `ngForm` identifer which is offered by the `FormsModule`'s form directive, and it will bind this form template variable, `#form` to an object of type `NgForm`, and this object is automatically created and managed by Angular:
+
+![Project13-screenshot3](/01-starting-project-section-13/section13-demo/Project-13-2026-09-29-1.png)
+
+So, the `LoginComponent` template will be like this:
+
+```html
+<form #form="ngForm">
+  <h2>Login</h2>
+
+  <div class="control-row">
+    <div class="control no-margin">
+      <label for="email">Email</label>
+      <input id="email" type="email" name="email" ngModel />
+    </div>
+
+    <div class="control no-margin">
+      <label for="password">Password</label>
+      <input id="password" type="password" name="password" ngModel />
+    </div>
+
+    <button class="button">Login</button>
+  </div>
+</form>
+```
+
+So now, this `#form` template variable stores this Angular managed form. The inputs are registered to this object `NgForm` object by `ngModel`.
+
+The reason why it's called template-driven is because I need all these setup work in the template.
+
+Then, in the component, to access this form, I can either use the view child function or decorator or by passing this variable, `#form`, onto some method that will be executed when the form is submitted.
+
+Here I'm learning the second approach, i.e. adding the `ngSubmit` event handler, which is another forms related feature offered by Angular.
+
+Pass a `form` of `NgForm` type to the `onSubmit`:
+
+```html
+<form #form="ngForm" (ngSubmit)="onSubmit(form)"> <--- here!
+  <h2>Login</h2>
+
+  <div class="control-row">
+    <div class="control no-margin">
+      <label for="email">Email</label>
+      <input id="email" type="email" name="email" ngModel />
+    </div>
+
+    <div class="control no-margin">
+      <label for="password">Password</label>
+      <input id="password" type="password" name="password" ngModel />
+    </div>
+
+    <button class="button">Login</button>
+  </div>
+</form>
+
+```
+
+Then in the `LoginComponent`:
+
+```ts
+import { Component } from '@angular/core';
+import { FormsModule, NgForm } from '@angular/forms';
+
+@Component({
+  selector: 'app-login',
+  standalone: true,
+  imports: [FormsModule],
+  templateUrl: './login.component.html',
+  styleUrl: './login.component.css',
+})
+export class LoginComponent {
+  onSubmit(form: NgForm) {
+    console.log(form);
+  }
+}
+```
+
+Here's the result of `console.log(form);`:
+
+![Project13-screenshot4](/01-starting-project-section-13/section13-demo/Project-13-2026-09-29-2.png)
+
+I can tell it's a `NgForm` object with a `form` key and it holds another object of type `FormGroup`.
+
+This `FormGroup` contains some properties like `controls`, `errors` (which is currently `null`), `pristine` (which is currently `false`, and `touched: true`, so it has has been touched by the user), `value` (which has two keys that match the names of `<input name="email" />` and `<input name="password" />`. This proves that `ngModel` does register these inputs to this form).
+
+
+![Project13-screenshot5](/01-starting-project-section-13/section13-demo/Project-13-2026-09-29-3.png)
+
+If I expand `controls`, I can see each key-value pair is for each input we registered. These keys have the same names as in the `<input name="email" />` and `<input name="password" />`. Each key is of type `FormControl`. Then, for each input I can see more detailed info like `value` (i.e. the value User just entered), `status` (like if it's `VALID`), `touched` (like if it's touched by the user), etc.
+
+![Project13-screenshot6](/01-starting-project-section-13/section13-demo/Project-13-2026-09-29-4.png)
+
+The `value` of the form is captured in this `NgForm`:
+
+![Project13-screenshot7](/01-starting-project-section-13/section13-demo/Project-13-2026-09-29-5.png)
