@@ -225,3 +225,20 @@ If I expand `controls`, I can see each key-value pair is for each input we regis
 The `value` of the form is captured in this `NgForm`:
 
 ![Project13-screenshot7](/01-starting-project-section-13/section13-demo/Project-13-2026-09-29-5.png)
+
+## Extracting User Input Values
+
+Now I can access the entered values by using the keys of the `NgForm` object:
+
+```ts
+export class LoginComponent {
+  onSubmit(formData: NgForm) {  // change the param name from 'form' to 'formData'
+    const entertedEmail = formData.form.value.email; // so here I can say 'formData.form.xx' instead of `form.form.xx` for this practice
+    const entertedPassword = formData.form.value.password;
+    console.log('entertedEmail: ', entertedEmail);
+    console.log('entertedPassword: ', entertedPassword);
+  }
+}
+```
+
+Bascially I'm not using two-binding (as in the template it's just `ngModel`, not `[(ngModel)]`) and just get hold of the entered value when the form is submitted with Angular's created form object, `formData`.
