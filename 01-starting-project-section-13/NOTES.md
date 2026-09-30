@@ -242,3 +242,67 @@ export class LoginComponent {
 ```
 
 Bascially I'm not using two-binding (as in the template it's just `ngModel`, not `[(ngModel)]`) and just get hold of the entered value when the form is submitted with Angular's created form object, `formData`.
+
+## Validating input with form validation directives
+
+For example, `required`, so Angular knows this input field must not be empty.
+
+Also, `email` attribute is also registered as a directive.
+
+Update the `LoginComponent` template:
+
+```html
+<form #form="ngForm" (ngSubmit)="onSubmit(form)">
+  <h2>Login</h2>
+
+  <div class="control-row">
+    <div class="control no-margin">
+      <label for="email">Email</label>
+      <input id="email" type="email" name="email" ngModel required email />
+    </div>
+
+    <div class="control no-margin">
+      <label for="password">Password</label>
+      <input id="password" type="password" name="password" ngModel required minlength="6" />
+    </div>
+
+    <button class="button">Login</button>
+  </div>
+</form>
+```
+
+After adding those directives and then add `console.log(formData.form);` here in the `LoginComponent`, now open the log in form with empty fields, I can see the `status` has become `invalid` currently for the entire `form` object:
+
+![Project13-screenshot8](/01-starting-project-section-13/section13-demo/Project-13-2026-09-30-1.png)
+
+Pop the `email` control open, the `status` is also `invalid`, and the `errors` says `{required: true}`:
+
+![Project13-screenshot9](/01-starting-project-section-13/section13-demo/Project-13-2026-09-30-2.png)
+
+If I fill `email` with some text like `test`, then the `errors` says `{email: true}` but the status is still `invalid` as it's still not an email:
+
+![Project13-screenshot10](/01-starting-project-section-13/section13-demo/Project-13-2026-09-30-3.png)
+
+Then, I can add a boolean check in the `LoginComponent` where I check if the entire `form` object is `invalid`, then when submit, just `return;`:
+
+```ts
+export class LoginComponent {
+  onSubmit(formData: NgForm) {
+    if (formData.form.invalid) {
+      return;
+    }
+    const entertedEmail = formData.form.value.email;
+    const entertedPassword = formData.form.value.password;
+
+    console.log('formData.form: ', formData.form);
+    console.log('entertedEmail: ', entertedEmail);
+    console.log('entertedPassword: ', entertedPassword);
+  }
+}
+```
+
+![Project13-screenshot11](/01-starting-project-section-13/section13-demo/Project-13-2026-09-30-4.png)
+
+Then, now if I click `submit` when the fields are empty, the dev tool > console tab will not print anything as the code has been exited:
+
+![Project13-screenshot12](/01-starting-project-section-13/section13-demo/Project-13-2026-09-30-5.png)
