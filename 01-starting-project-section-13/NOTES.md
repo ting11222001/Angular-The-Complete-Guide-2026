@@ -306,3 +306,114 @@ export class LoginComponent {
 Then, now if I click `submit` when the fields are empty, the dev tool > console tab will not print anything as the code has been exited:
 
 ![Project13-screenshot12](/01-starting-project-section-13/section13-demo/Project-13-2026-09-30-5.png)
+
+## Using the Form Validation Status To Provide User Feedback
+
+Add the `<p />` tag with class `control-error`.
+
+Add `@if (form.form.invalid)`. The first `form` is from `#form` reference, and the second `form` is the `form` key in the `NgForm` object.
+
+```html
+<form #form="ngForm" (ngSubmit)="onSubmit(form)">
+  <h2>Login</h2>
+
+  <div class="control-row">
+    <div class="control no-margin">
+      <label for="email">Email</label>
+      <input id="email" type="email" name="email" ngModel required email />
+    </div>
+
+    <div class="control no-margin">
+      <label for="password">Password</label>
+      <input id="password" type="password" name="password" ngModel required minlength="6" />
+    </div>
+
+    <button class="button">Login</button>
+  </div>
+
+  @if (form.form.invalid) {
+    <p class="control-error">
+      Invalid values detected.
+    </p>  
+  }
+</form>
+```
+
+So now on UI, if email and password fields are empty i.e. form status is invalid, then it will show this error message nicely:
+
+![Project13-screenshot13](/01-starting-project-section-13/section13-demo/Project-13-2026-10-01-1.png)
+
+But this is not the best user experience as this error message only shows up after submitting (clicking the Log in button), so user didn't have a chance to change their inputs.
+
+Change it to `form.form.touched && form.form.invalid`, so that before the login button is clicked, user needs to at least had touched the fields (even without filling in any values):
+
+```html
+@if (form.form.touched && form.form.invalid) {
+    <p class="control-error">
+        Invalid values detected.
+    </p>  
+}
+```
+
+To be more specific, check each controls field like this:
+
+```html
+  @if (form.form.controls['email'].touched && 
+    form.form.controls['password'].touched && 
+    form.form.invalid) {
+    <p class="control-error">
+      Invalid values detected.
+    </p>  
+  }
+```
+
+So only when User had tried to fill in both fields, then the `Invalid values detected.` message will be shown on the UI.
+
+### `form.form.touched` vs `form.form.controls['email'].touched`
+
+The difference is scope: one checks the whole form, the other checks one field.
+
+`form.form.touched`
+
+- `form` is your `NgForm` (from `#form="ngForm"`).
+- `form.form` is the `FormGroup` behind it.
+- It becomes `true` as soon as any field in the form has been touched.
+
+`form.form.controls['email'].touched`
+
+- This is the single `FormControl` for the `email` field.
+- It becomes `true` only when the email field itself has been touched.
+
+"Touched" means the user focused the field and then left it (a blur event). Typing alone does not set it until the user leaves the field.
+
+Then, back to the course content.
+
+`#email` means we want to store this `ngModel` control object into this `#email` template variable.
+
+Hovering over `#email` I can see this is a reference of `ngModel` type.
+
+So now I can simplify this part into this:
+
+```html
+<!-- old -->
+@if (form.form.controls['email'].touched && 
+    form.form.controls['password'].touched && 
+    form.form.invalid) {
+    <p class="control-error">
+        Invalid values detected.
+    </p>  
+}
+
+<!-- new -->
+@if (
+    email.touched &&
+    password.touched &&
+    form.form.invalid
+) {
+    <p class="control-error">Invalid values detected.</p>
+}
+```
+
+Again on the UI, if I tap on the email field, and then tap out, the error message will not show, but then if I tap on the password field, and then tap out, the error message will show this time without clicking on the login i.e. `onSubmit()` button.
+
+The key of this template driven approach is that we can get this control specific info by using `email.touched` and `password.touched`, as well as the entire `form` info by using `form.form.invalid`.
