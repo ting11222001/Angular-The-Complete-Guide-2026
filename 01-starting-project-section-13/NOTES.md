@@ -644,3 +644,61 @@ export class LoginComponent {
 
 On the UI, if I keep typing it won't update the localStorage right away - only when I stop for a bit, then it will start updating the localStorage to wherever I stop typing with.
 
+## Updating Form Values Programmatically
+
+Now I want to use that saved email value to pre-populate the form.
+
+If I use this `s.form().controls['email'].setValue(savedEmail);` directly, it shows this error `ERROR TypeError: Cannot read properties of undefined (reading 'setValue')`:
+
+```ts
+export class LoginComponent {
+  private form = viewChild.required<NgForm>('form');
+  private destroyRef = inject(DestroyRef);
+
+  constructor() {
+    afterNextRender(() => {
+      const savedFormData = window.localStorage.getItem('saved-login-form');
+
+      if (savedFormData) {
+        const loadedFormData = JSON.parse(savedFormData);
+        const savedEmail = loadedFormData.email;
+        this.form().controls['email'].setValue(savedEmail); // error!
+      }
+      ...
+    }
+```
+
+### `ERROR TypeError: Cannot read properties of undefined (reading 'setValue')`
+
+The `email` control does not exist yet when your callback runs. That is why `controls['email']` is `undefined` and `.setValue()` throws.
+
+#### Why it happens
+
+You are using a template driven form (`NgForm` with `ngModel`). In this type of form, each `ngModel` input does not add its control to the form straight away. `NgForm.addControl()` puts the registration inside a resolved Promise. So it runs a moment later, in the next microtask.
+
+`afterNextRender()` runs right after the DOM is rendered. At that point the inputs exist on the page, but their controls are still waiting to be added. So `this.form().controls` is an empty object `{}`.
+
+#### How to solve it
+
+In this tutorial, I learned to wait one more tick (smallest change):
+
+```ts
+afterNextRender(() => {
+  const savedFormData = window.localStorage.getItem('saved-login-form');
+
+  if (savedFormData) {
+    const loadedFormData = JSON.parse(savedFormData);
+    setTimeout(() => { // added!
+      this.form().controls['email'].setValue(loadedFormData.email);
+    }, 1);
+  }
+});
+```
+
+Reason: `setTimeout` runs after all pending microtasks, so the controls are registered by then. It works, but it depends on timing, which is a bit fragile.
+
+So now if I type in the email field up to `test@`, it will be saved in the local storage and then reload the page, the email field is pre-populated upto `test@` automatically:
+
+![Project13-screenshot22](/01-starting-project-section-13/section13-demo/Project-13-2026-10-02-9.png)
+
+But I will learn more elegant way i.e. Reactive Form in the next course module, which I don't need to add a workaround `setTimeout`.
