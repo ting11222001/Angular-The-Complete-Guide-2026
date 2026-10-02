@@ -514,3 +514,133 @@ So now if I input invalid email and password and tap out, I can see the error me
 If I then enter valid values, then the error messages are gone, and I can submit the form and access the value there (from the `LogInComponent` and its `onSubmit()` method when the form is NOT invalid):
 
 ![Project13-screenshot16](/01-starting-project-section-13/section13-demo/Project-13-2026-10-02-3.png)
+
+## Interacting With The Underlying Form Object In The Component
+
+I can use this `formData.form.reset()` to clear out the values and reset all the underlying info:
+
+```ts
+export class LoginComponent {
+  onSubmit(formData: NgForm) {
+    if (formData.form.invalid) {
+      return;
+    }
+    const entertedEmail = formData.form.value.email;
+    const entertedPassword = formData.form.value.password;
+
+    console.log('formData: ', formData);
+    console.log('formData.form: ', formData.form);
+    console.log('entertedEmail: ', entertedEmail);
+    console.log('entertedPassword: ', entertedPassword);
+
+    formData.form.reset(); // clear out the values and reset all the underlying info
+  }
+}
+```
+
+So now if I type in valid email and 6 characters long password and then click log in, then the fields are cleared and console logs run from `onSubmit()`, and the fields are cleared with `class="ng-untouched ng-pristine ng-invalid">` in the `input` tag:
+
+![Project13-screenshot17](/01-starting-project-section-13/section13-demo/Project-13-2026-10-02-4.png)
+
+
+To wrap up this template driven approach, I'm adding some extra features to this form.
+
+For example, if User enters some values in the email field, but halfway User reloads the page, I want to save that value and pre-populate the form with that saved value.
+
+So I will have to save the value while User is entering it.
+
+I need to do it outside of the `onSubmit()` or it will be too late.
+
+Use `viewChild` to link to the Angular form. Set it as `required`, so in `this.form().valueChanges?.subscribe()`, I don't need to write `this.form()?`.
+
+`valueChanges` returns an observable and can be `null`, so it's `valueChanges?`.
+
+`afterNextRender()` means `Register a callback to be invoked the next time the application finishes rendering`. 
+
+```ts
+export class LoginComponent {
+  private form = viewChild.required<NgForm>('form'); // added!
+  private destroyRef = inject(DestroyRef); // added!
+
+  constructor() {  // added!
+    afterNextRender(() => {  // added!
+      const subscription = this.form().valueChanges?.subscribe({  // added!
+        next: (value) => console.log(value)   // added!
+      });
+
+      this.destroyRef.onDestroy(() => subscription?.unsubscribe());  // added!
+    });
+  }
+  ...
+}
+```
+
+![Project13-screenshot18](/01-starting-project-section-13/section13-demo/Project-13-2026-10-02-5.png)
+
+I'm only doing thfis temporary save thing in the local storage o my browser.
+
+```ts
+export class LoginComponent {
+  private form = viewChild.required<NgForm>('form');
+  private destroyRef = inject(DestroyRef);
+
+  constructor() {
+    afterNextRender(() => {
+      const subscription = this.form().valueChanges?.subscribe({
+        next: (value) =>
+          window.localStorage.setItem(
+            'saved-login-form',
+            JSON.stringify({ email: value.email }),
+          ),
+      });
+
+      this.destroyRef.onDestroy(() => subscription?.unsubscribe());
+    });
+  }
+}
+```
+
+So now with every keystroke, each character of the email input field will be saved in the `saved-login-form` row in the localStorage.
+
+Start with empty:
+
+![Project13-screenshot19](/01-starting-project-section-13/section13-demo/Project-13-2026-10-02-6.png)
+
+Then, start with filling in:
+
+![Project13-screenshot20](/01-starting-project-section-13/section13-demo/Project-13-2026-10-02-7.png)
+
+![Project13-screenshot21](/01-starting-project-section-13/section13-demo/Project-13-2026-10-02-8.png)
+
+This might not be performant.
+
+So I can add a `pipe()` to introduce `debounceTime()` operator, which takes a milliseconds as param, so if User is still typing it won't emit the value yet. Only when User stops for at least 500 milliseconds the emitted value will make it to this `next()` function.
+
+So the `next()` function won't run too often.
+
+```ts
+export class LoginComponent {
+  private form = viewChild.required<NgForm>('form');
+  private destroyRef = inject(DestroyRef);
+
+  constructor() {
+    afterNextRender(() => {
+      const subscription = this.form()
+        .valueChanges?.pipe(debounceTime(500))
+        .subscribe({
+          next: (value) =>
+            window.localStorage.setItem(
+              'saved-login-form',
+              JSON.stringify({ email: value.email }),
+            ),
+        });
+
+      this.destroyRef.onDestroy(() => subscription?.unsubscribe());
+    });
+  }
+  ...
+}
+```
+
+On the UI, if I keep typing it won't update the localStorage right away - only when I stop for a bit, then it will start updating the localStorage to wherever I stop typing with.
+
