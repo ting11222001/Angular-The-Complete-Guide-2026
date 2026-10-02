@@ -417,3 +417,100 @@ So now I can simplify this part into this:
 Again on the UI, if I tap on the email field, and then tap out, the error message will not show, but then if I tap on the password field, and then tap out, the error message will show this time without clicking on the login i.e. `onSubmit()` button.
 
 The key of this template driven approach is that we can get this control specific info by using `email.touched` and `password.touched`, as well as the entire `form` info by using `form.form.invalid`.
+
+## Adding Validation Styles
+
+Check the element of email input field in the dev tool.
+
+`class="ng-pristine ng-invalid ng-touched"` is added and managed by Angular thanks to `ngModel` added to that `<input />`.
+
+Since I didn't type anything yet in the email field, it's pristine, but touched as I clicked on it, and no text in there so it's invalid.
+
+```html
+<input _ngcontent-ng-c2979662422="" id="email" type="email" name="email" ngmodel="" required="" email="" ng-reflect-required="" ng-reflect-email="" ng-reflect-name="email" ng-reflect-model="" class="ng-pristine ng-invalid ng-touched">
+```
+
+If then I reloaded the page, the `<input />` class becomes `ng-untouched`:
+
+```html
+<input _ngcontent-ng-c2979662422="" id="email" type="email" name="email" ngmodel="" required="" email="" ng-reflect-required="" ng-reflect-email="" ng-reflect-name="email" ng-reflect-model="" class="ng-untouched ng-pristine ng-invalid">
+```
+
+I can use this `class` for styling e.g. in `styles.css` like this:
+
+```css
+.control:has(input.ng-invalid.ng-touched.ng-dirty) label {
+  color: #f98b75;
+}
+
+input.ng-invalid.ng-touched.ng-dirty {
+  background-color: #fbdcd6;
+  border-color: #f98b75;
+}
+```
+
+So now if I randomly type something invalid in the input fields of email and password, then the fields becomes dirty, and now if I tap out, the fields change colours accordingly:
+
+![Project13-screenshot14](/01-starting-project-section-13/section13-demo/Project-13-2026-10-02-1.png)
+
+I can also update the error message styles according to the fields like this:
+
+```html
+<form #form="ngForm" (ngSubmit)="onSubmit(form)">
+  <h2>Login</h2>
+
+  <div class="control-row">
+    <div class="control no-margin">
+      <label for="email">Email</label>
+      <input
+        id="email"
+        type="email"
+        name="email"
+        ngModel
+        required
+        email
+        #email="ngModel"
+      />
+    </div>
+
+    <div class="control no-margin">
+      <label for="password">Password</label>
+      <input
+        id="password"
+        type="password"
+        name="password"
+        ngModel
+        required
+        minlength="6"
+        #password="ngModel"
+      />
+    </div>
+
+    <button class="button">Login</button>
+  </div>
+
+  @if (
+    email.touched &&
+    email.dirty &&
+    email.invalid
+  ) {
+    <p class="control-error">Invalid email address entered.</p>
+  }
+
+  @if (
+    password.touched &&
+    password.dirty &&
+    password.invalid
+  ) {
+    <p class="control-error">Invalid password entered. Password must be at least 6 characters long.</p>
+  }
+</form>
+```
+
+So now if I input invalid email and password and tap out, I can see the error messages accordingly:
+
+![Project13-screenshot15](/01-starting-project-section-13/section13-demo/Project-13-2026-10-02-2.png)
+
+If I then enter valid values, then the error messages are gone, and I can submit the form and access the value there (from the `LogInComponent` and its `onSubmit()` method when the form is NOT invalid):
+
+![Project13-screenshot16](/01-starting-project-section-13/section13-demo/Project-13-2026-10-02-3.png)
