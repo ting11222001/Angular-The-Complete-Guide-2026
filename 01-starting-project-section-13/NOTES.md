@@ -702,3 +702,486 @@ So now if I type in the email field up to `test@`, it will be saved in the local
 ![Project13-screenshot22](/01-starting-project-section-13/section13-demo/Project-13-2026-10-02-9.png)
 
 But I will learn more elegant way i.e. Reactive Form in the next course module, which I don't need to add a workaround `setTimeout`.
+
+## Reactive Forms: Getting Started
+
+Reset the template and the component for `Login`.
+
+So the previous template driven approach the `Login` component looks like this:
+
+```ts
+import {
+  afterNextRender,
+  Component,
+  DestroyRef,
+  inject,
+  viewChild,
+} from '@angular/core';
+import { FormsModule, NgForm } from '@angular/forms';
+import { debounceTime } from 'rxjs/internal/operators/debounceTime';
+
+@Component({
+  selector: 'app-login',
+  standalone: true,
+  imports: [FormsModule],
+  templateUrl: './login.component.html',
+  styleUrl: './login.component.css',
+})
+export class LoginComponent {
+  private form = viewChild.required<NgForm>('form');
+  private destroyRef = inject(DestroyRef);
+
+  constructor() {
+    afterNextRender(() => {
+      const savedFormData = window.localStorage.getItem('saved-login-form');
+
+      if (savedFormData) {
+        const loadedFormData = JSON.parse(savedFormData);
+        const savedEmail = loadedFormData.email;
+
+        setTimeout(() => {
+          this.form().controls['email'].setValue(savedEmail);
+        }, 1);
+      }
+
+      const subscription = this.form()
+        .valueChanges?.pipe(debounceTime(500))
+        .subscribe({
+          next: (value) =>
+            window.localStorage.setItem(
+              'saved-login-form',
+              JSON.stringify({ email: value.email }),
+            ),
+        });
+
+      this.destroyRef.onDestroy(() => subscription?.unsubscribe());
+    });
+  }
+
+  onSubmit(formData: NgForm) {
+    if (formData.form.invalid) {
+      return;
+    }
+    const entertedEmail = formData.form.value.email;
+    const entertedPassword = formData.form.value.password;
+
+    console.log('formData: ', formData);
+    console.log('formData.form: ', formData.form);
+    console.log('entertedEmail: ', entertedEmail);
+    console.log('entertedPassword: ', entertedPassword);
+
+    formData.form.reset(); // clear out the values and reset all the underlying info
+  }
+}
+```
+
+The previous `Login` template looks like this:
+
+```html
+<form #form="ngForm" (ngSubmit)="onSubmit(form)">
+  <h2>Login</h2>
+
+  <div class="control-row">
+    <div class="control no-margin">
+      <label for="email">Email</label>
+      <input
+        id="email"
+        type="email"
+        name="email"
+        ngModel
+        required
+        email
+        #email="ngModel"
+      />
+    </div>
+
+    <div class="control no-margin">
+      <label for="password">Password</label>
+      <input
+        id="password"
+        type="password"
+        name="password"
+        ngModel
+        required
+        minlength="6"
+        #password="ngModel"
+      />
+    </div>
+
+    <button class="button">Login</button>
+  </div>
+
+  @if (
+    email.touched &&
+    email.dirty &&
+    email.invalid
+  ) {
+    <p class="control-error">Invalid email address entered.</p>
+  }
+
+  @if (
+    password.touched &&
+    password.dirty &&
+    password.invalid
+  ) {
+    <p class="control-error">Invalid password entered. Password must be at least 6 characters long.</p>
+  }
+</form>
+```
+
+Now `LoginComponent` is clean like this:
+
+```ts
+import { Component } from '@angular/core';
+
+@Component({
+  selector: 'app-login',
+  standalone: true,
+  templateUrl: './login.component.html',
+  styleUrl: './login.component.css',
+})
+export class LoginComponent {}
+```
+
+And the `LoginComponent` template is like this:
+
+```html
+<form>
+  <h2>Login</h2>
+
+  <div class="control-row">
+    <div class="control no-margin">
+      <label for="email">Email</label>
+      <input id="email" type="email" />
+    </div>
+
+    <div class="control no-margin">
+      <label for="password">Password</label>
+      <input id="password" type="password" />
+    </div>
+
+    <button class="button">Login</button>
+  </div>
+</form>
+```
+
+Later, other than making login form, I will also practice the sign up form.
+
+Start with the login form using Reactive Forms approach.
+
+I don't need to set up anything in the template. Instead, I only need to do that in the TypeScript code in the template. 
+
+Earlier in the template driven approach, Angular creates a form object of type `FormGroup`. In the reactive form approach, we create a form object of type `FormGroup` ourselves.
+
+`FormGroup` takes an object as an input and that object will register multiple key value pairs where every key value pair represents one control inside of that `FormGroup` or some nested `FormGroup`. 
+
+```ts
+import { Component } from '@angular/core';
+import { FormGroup } from '@angular/forms';
+
+@Component({
+  selector: 'app-login',
+  standalone: true,
+  templateUrl: './login.component.html',
+  styleUrl: './login.component.css',
+})
+export class LoginComponent {
+  form = new FormGroup({}); // Creates a new FormGroup instance.
+}
+```
+
+I will learn about nested `FormGroups` later.
+
+The key name doesn't matter much, just that the value should be of type `FormControl`.
+
+`FormControl` constructor can be used without any arguments i.e. to setup a `FormControl` without any initial value. It can have initial value also.
+
+```ts
+@Component({
+  selector: 'app-login',
+  standalone: true,
+  templateUrl: './login.component.html',
+  styleUrl: './login.component.css',
+})
+export class LoginComponent {
+  form = new FormGroup({
+    email: new FormControl(''), // initial value of this control is an empty string!
+    password: new FormControl(''),
+  });
+}
+```
+
+Then, add an `onSubmit()` method and start using the `form`:
+
+```ts
+@Component({
+  selector: 'app-login',
+  standalone: true,
+  templateUrl: './login.component.html',
+  styleUrl: './login.component.css',
+})
+export class LoginComponent {
+  form = new FormGroup({
+    email: new FormControl(''),
+    password: new FormControl(''),
+  });
+
+  onSubmit() {}
+}
+```
+
+So the first step is to setup the form on my own. The second step is to let Angular know how this form is connected to my actual template.
+
+## Syncing Reactive Form Definition & Template
+
+Import this module for Reactive Forms (which is different from the template driven approach's `FormModule`):
+
+```ts
+@Component({
+  selector: 'app-login',
+  standalone: true,
+  imports: [ReactiveFormsModule], // addded!
+  templateUrl: './login.component.html',
+  styleUrl: './login.component.css',
+})
+export class LoginComponent {
+  form = new FormGroup({
+    email: new FormControl(''),
+    password: new FormControl(''),
+  });
+
+  onSubmit() {}
+}
+```
+
+After that, I can go to my template and add the `formControl` directive the email `input`.
+
+Like this:
+
+```html
+<form>
+  <h2>Login</h2>
+
+  <div class="control-row">
+    <div class="control no-margin">
+      <label for="email">Email</label>
+      <input id="email" type="email" [formControl]="form.controls.email" /> <--- here!
+    </div>
+
+    <div class="control no-margin">
+      <label for="password">Password</label>
+      <input id="password" type="password" [formControl]="form.controls.password" /> <--- here!
+    </div>
+
+    <button class="button" (click)="onSubmit()">Login</button>
+  </div>
+</form>
+```
+
+### What is `[formControl]`?
+
+The square brackets `[ ]` are Angular property binding. They mean: "take this value from my TypeScript class and give it to this element." Without brackets, Angular would treat `form.controls.email` as a plain text string.
+
+`formControl` is a directive. A directive is a small piece of Angular code that attaches to an HTML element and gives it extra behaviour. This one comes from `ReactiveFormsModule`. Its job is to link the `<input>` on the screen to the `FormControl` object in your class.
+
+After it is linked, the sync works both ways:
+
+You type in the input, so the `FormControl` value updates.
+Your code calls `setValue('a@b.com')`, so the input shows the new text.
+
+### Is `controls` a property of `FormGroup`?
+
+When you write this:
+
+```ts
+new FormGroup({
+  email: new FormControl(''),
+  password: new FormControl(''),
+});
+```
+
+the object you pass in is stored inside the FormGroup as its controls property. So form.controls is that same object:
+
+```ts
+form.controls          // { email: FormControl, password: FormControl }
+form.controls.email    // the exact FormControl you created
+```
+
+Since Angular 14, forms are "typed". This means TypeScript remembers your key names. That is why `form.controls.email` gets autocomplete and `form.controls.emial` gives a compile error.
+
+Back to the course content.
+
+Angular also gives us a shorter way. Instead, I can use `formControlName` this directive like this:
+
+```html
+<form>
+  <h2>Login</h2>
+
+  <div class="control-row">
+    <div class="control no-margin">
+      <label for="email">Email</label>
+      <input id="email" type="email" formControlName="email" /> <--- here!
+    </div>
+
+    <div class="control no-margin">
+      <label for="password">Password</label>
+      <input id="password" type="password" formControlName="password" /> <--- here!
+    </div>
+
+    <button class="button" (click)="onSubmit()">Login</button>
+  </div>
+</form>
+```
+
+Those names need to be the same key name as in the TypeScript class here:
+
+```ts
+form = new FormGroup({
+    email: new FormControl(''),
+    password: new FormControl(''),
+});
+```
+
+
+But now the browser will show this error:
+
+```
+ERROR RuntimeError: NG01050: formControlName must be used with a parent formGroup directive. You'll want to add a formGroup directive and pass it an existing FormGroup instance (you can create one in your class). 
+
+Affected Form Control name: "email"
+
+Example:
+
+<div [formGroup]="myGroup">
+    <input formControlName="firstName">
+</div>
+
+In your class:
+
+this.myGroup = new FormGroup({
+    firstName: new FormControl()
+});
+```
+
+It's because the overall form is not connected to this form yet.
+
+What I need to do is using property binding i.e. binding the `formGroup` directive to my `form` property at the `<form />` tag:
+
+```html
+<form [formGroup]="form"> <--- here!
+  <h2>Login</h2>
+
+  <div class="control-row">
+    <div class="control no-margin">
+      <label for="email">Email</label>
+      <input id="email" type="email" formControlName="email" />
+    </div>
+
+    <div class="control no-margin">
+      <label for="password">Password</label>
+      <input id="password" type="password" formControlName="password" />
+    </div>
+
+    <button class="button" (click)="onSubmit()">Login</button>
+  </div>
+</form>
+```
+
+Now the browser's error is gone!
+
+So now I've done the form setup work in the TypeScript class (i.e. the component) and have also linked the controls to the template's elements.
+
+Next, I will work on form submissions, validations, and other things. 
+
+## Handling Form Submisssion (Reactive Forms)
+
+In the template it can be the same as the template driven approach which is to listen to the `ngSubmit` event and let it call whatever methods like `onSubmit()`.
+
+The main difference is that I don't need to pass any arguments into `onSubmit()` as I already have access to the form in my class as it's setup in the TypeScript class after all.
+
+So here in `onSubmit()`, I can just do `console.log(this.form);` to see what is inside the form there:
+
+```ts
+@Component({
+  selector: 'app-login',
+  standalone: true,
+  imports: [ReactiveFormsModule],
+  templateUrl: './login.component.html',
+  styleUrl: './login.component.css',
+})
+export class LoginComponent {
+  form = new FormGroup({
+    email: new FormControl(''),
+    password: new FormControl(''),
+  });
+
+  onSubmit() {
+    console.log(this.form);
+  }
+}
+```
+
+In the browser, the same kind of `FormGroup` object is logged in the dev tool > console tab as the previous template-driven approach (as Angular manages the forms the same way under the hood, just the setup work is different for us).
+
+The form properties and each control has more of its details:
+
+![Project13-screenshot23](/01-starting-project-section-13/section13-demo/Project-13-2026-10-03-1.png)
+
+Since TypeScript understands the shape of my `form`, I can access the `email` control easily like this:
+
+```ts
+@Component({
+  selector: 'app-login',
+  standalone: true,
+  imports: [ReactiveFormsModule],
+  templateUrl: './login.component.html',
+  styleUrl: './login.component.css',
+})
+export class LoginComponent {
+  form = new FormGroup({
+    email: new FormControl(''),
+    password: new FormControl(''),
+  });
+
+  onSubmit() {
+    console.log(this.form);
+    console.log('this.form.value.email: ', this.form.value.email);
+  }
+}
+```
+
+In the dev tool > console tab:
+
+![Project13-screenshot24](/01-starting-project-section-13/section13-demo/Project-13-2026-10-03-2.png)
+
+Then, I'm saving those form fields values into these variables, `enteredEmail` and `enteredPassword`:
+
+```ts
+@Component({
+  selector: 'app-login',
+  standalone: true,
+  imports: [ReactiveFormsModule],
+  templateUrl: './login.component.html',
+  styleUrl: './login.component.css',
+})
+export class LoginComponent {
+  form = new FormGroup({
+    email: new FormControl(''),
+    password: new FormControl(''),
+  });
+
+  onSubmit() {
+    console.log(this.form);
+    const enteredEmail = this.form.value.email; // added!
+    const enteredPassword = this.form.value.password; // added!
+    console.log({                           // added!
+      'enteredEmail': enteredEmail,
+      'enteredPassword': enteredPassword
+    });
+  }
+}
+```
+
+In the dev tool > console tab:
+
+![Project13-screenshot25](/01-starting-project-section-13/section13-demo/Project-13-2026-10-03-3.png)
