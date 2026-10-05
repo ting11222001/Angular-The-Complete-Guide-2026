@@ -1185,3 +1185,176 @@ export class LoginComponent {
 In the dev tool > console tab:
 
 ![Project13-screenshot25](/01-starting-project-section-13/section13-demo/Project-13-2026-10-03-3.png)
+
+## Adding Validators to Reactive Forms
+
+I set up everything in the TypeScript class when the form is created as a second argument.
+
+It's a configuration object like this:
+
+```ts
+export class LoginComponent {
+  form = new FormGroup({
+    email: new FormControl('', {
+      validators: [], // here!
+    }), 
+    password: new FormControl(''),
+  });
+}
+```
+
+Then I can pass a `Validator` like this so to add the built-in checks.
+
+`Validator` class provides a set of built-in validators that can be used by form controls.
+
+`Validators.email` means the value has to be in the email format.
+
+```ts
+import {
+  FormControl,
+  FormGroup,
+  ReactiveFormsModule,
+  Validators, // imported!
+} from '@angular/forms';
+
+export class LoginComponent {
+  form = new FormGroup({
+    email: new FormControl('', {
+      validators: [Validators.required, Validators.email], // here!
+    }),
+    password: new FormControl('', {
+      validators: [Validators.required, Validators.minLength(6)], // here!
+    }),
+  });
+}
+```
+
+And update the template to show the error messages:
+
+```html
+<form [formGroup]="form">
+  <h2>Login</h2>
+
+  <div class="control-row">
+    <div class="control no-margin">
+      <label for="email">Email</label>
+      <input id="email" type="email" formControlName="email" />
+    </div>
+
+    <div class="control no-margin">
+      <label for="password">Password</label>
+      <input id="password" type="password" formControlName="password" />
+    </div>
+
+    <button class="button" (click)="onSubmit()">Login</button>
+  </div>
+
+  @if (form.controls.email.touched && form.controls.email.dirty && form.controls.email.invalid) {
+    <p class="error-text">Please enter a valid email address.</p>
+  }
+
+  @if (form.controls.password.touched && form.controls.password.dirty && form.controls.password.invalid) {
+    <p class="error-text">Password must be at least 6 characters long.</p>
+  }
+</form>
+```
+
+Since this is a lot of code, I can write a getter in the TypeScript class instead:
+
+```ts
+import { Component } from '@angular/core';
+import {
+  FormControl,
+  FormGroup,
+  ReactiveFormsModule,
+  Validators,
+} from '@angular/forms';
+
+@Component({
+  selector: 'app-login',
+  standalone: true,
+  imports: [ReactiveFormsModule],
+  templateUrl: './login.component.html',
+  styleUrl: './login.component.css',
+})
+export class LoginComponent {
+  form = new FormGroup({
+    email: new FormControl('', {
+      validators: [Validators.required, Validators.email],
+    }),
+    password: new FormControl('', {
+      validators: [Validators.required, Validators.minLength(6)],
+    }),
+  });
+
+  get emailIsInvalid() {
+    return (
+      this.form.controls.email.touched &&
+      this.form.controls.email.dirty &&
+      this.form.controls.email.invalid
+    );
+  }
+
+  get passwordIsInvalid() {
+    return (
+      this.form.controls.password.touched &&
+      this.form.controls.password.dirty &&
+      this.form.controls.password.invalid
+    );
+  }
+
+  onSubmit() {
+    console.log(this.form);
+    const enteredEmail = this.form.value.email;
+    const enteredPassword = this.form.value.password;
+    console.log({
+      enteredEmail: enteredEmail,
+      enteredPassword: enteredPassword,
+    });
+  }
+}
+```
+
+And template can just use `emailIsInvalid` and `passwordIsInvalid` properties:
+
+```html
+<form [formGroup]="form">
+  <h2>Login</h2>
+
+  <div class="control-row">
+    <div class="control no-margin">
+      <label for="email">Email</label>
+      <input id="email" type="email" formControlName="email" />
+    </div>
+
+    <div class="control no-margin">
+      <label for="password">Password</label>
+      <input id="password" type="password" formControlName="password" />
+    </div>
+
+    <button class="button" (click)="onSubmit()">Login</button>
+  </div>
+
+  @if (emailIsInvalid) {
+    <p class="error-text">Please enter a valid email address.</p>
+  }
+
+  @if (passwordIsInvalid) {
+    <p class="error-text">Password must be at least 6 characters long.</p>
+  }
+</form>
+```
+
+Then the UI looks like this when I tap a field (so it's `touched`), type one character into the field (so it's `dirty`), and then tap out of the field (so the field like `email` is `invalid`):
+
+![Project13-screenshot26](/01-starting-project-section-13/section13-demo/Project-13-2026-10-05-1.png)
+
+The ng class is added `class="ng-invalid ng-dirty ng-touched"` like before:
+
+![Project13-screenshot27](/01-starting-project-section-13/section13-demo/Project-13-2026-10-05-2.png)
+
+When I type in valid email and password e.g. `test@gmail.com` and `123456`, it's able to show the ng class becomes `class="ng-dirty ng-touched ng-valid ng-submitted"`:
+
+![Project13-screenshot28](/01-starting-project-section-13/section13-demo/Project-13-2026-10-05-3.png)
+
+## Building Custome Validators
