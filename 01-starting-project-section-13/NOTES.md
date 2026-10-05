@@ -1357,4 +1357,71 @@ When I type in valid email and password e.g. `test@gmail.com` and `123456`, it's
 
 ![Project13-screenshot28](/01-starting-project-section-13/section13-demo/Project-13-2026-10-05-3.png)
 
-## Building Custome Validators
+## Building Custom Validators
+
+Note that I'm just passing the reference/pointer of the `mustContainQuestionMark` function to password's `validators` array as Angular will execute those validator functions for us (the `minLength()` in `Validators.minLength(6)` was executed because `minLength` is a factory function that produces a validator function that needs some configuration).
+
+```ts
+function mustContainQuestionMark(control: AbstractControl) {
+  if (control.value.includes('?')) { // includes() is a method that checks if a string contains a specific substring
+    return null;
+  }
+
+  return { doesNotContainQuestionMark: true };
+}
+
+@Component({
+  selector: 'app-login',
+  standalone: true,
+  imports: [ReactiveFormsModule],
+  templateUrl: './login.component.html',
+  styleUrl: './login.component.css',
+})
+export class LoginComponent {
+  form = new FormGroup({
+    email: new FormControl('', {
+      validators: [Validators.required, Validators.email],
+    }),
+    password: new FormControl('', {
+      validators: [Validators.required, Validators.minLength(6), mustContainQuestionMark], // use it here!
+    }),
+  });
+}
+```
+
+And update the template:
+
+```html
+<form [formGroup]="form">
+  <h2>Login</h2>
+
+  <div class="control-row">
+    <div class="control no-margin">
+      <label for="email">Email</label>
+      <input id="email" type="email" formControlName="email" />
+    </div>
+
+    <div class="control no-margin">
+      <label for="password">Password</label>
+      <input id="password" type="password" formControlName="password" />
+    </div>
+
+    <button class="button" (click)="onSubmit()">Login</button>
+  </div>
+
+  @if (emailIsInvalid) {
+    <p class="error-text">Please enter a valid email address.</p>
+  }
+
+  @if (passwordIsInvalid) {
+    <p class="error-text">
+      Please enter a valid password (must be at least 6 characters long and
+      contain a question mark).
+    </p>
+  }
+</form>
+```
+
+So now if I enter password `123456` and tap out, it will show this error:
+
+![Project13-screenshot29](/01-starting-project-section-13/section13-demo/Project-13-2026-10-05-4.png)
