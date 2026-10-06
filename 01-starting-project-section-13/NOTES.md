@@ -1422,6 +1422,267 @@ And update the template:
 </form>
 ```
 
-So now if I enter password `123456` and tap out, it will show this error:
+So now if I enter password `123456` and tap out, it will show this error as the password didn't have a question mark:
 
 ![Project13-screenshot29](/01-starting-project-section-13/section13-demo/Project-13-2026-10-05-4.png)
+
+## Creating & Using Async Validators
+
+I can create an async validator for email that's not unique.
+
+Here I hard coded that email as `test@example.com`. So if the entered email is `test@example.com`, then there will be an error.
+
+For example:
+
+```ts
+function emailIsUnique(control: AbstractControl) { // added here!
+  if (control.value !== 'test@example.com') {
+    return of(null); // has to return an observable because this is an async validator
+  }
+
+  return of({ emailNotUnique: true });
+}
+
+@Component({
+  selector: 'app-login',
+  standalone: true,
+  imports: [ReactiveFormsModule],
+  templateUrl: './login.component.html',
+  styleUrl: './login.component.css',
+})
+export class LoginComponent {
+  form = new FormGroup({
+    email: new FormControl('', {
+      validators: [Validators.required, Validators.email],
+      asyncValidators: [emailIsUnique], // added here!
+    }),
+    password: new FormControl('', {
+      validators: [
+        Validators.required,
+        Validators.minLength(6),
+        mustContainQuestionMark,
+      ],
+    }),
+  });
+```
+
+So now if I entered the email `test@example.com` and tap out, the error message will show:
+
+![Project13-screenshot30](/01-starting-project-section-13/section13-demo/Project-13-2026-10-06-1.png)
+
+If I then entered the email `test2@example.com` and tap out, then the error message goes away.
+
+### Sync vs async
+
+Your `mustContainQuestionMark` is a sync (synchronous) validator. It looks at the value and answers straight away. Everything it needs is already in the form.
+
+`emailIsUnique` is pretending to be a different kind of check. In a real app, "is this email already used?" can only be answered by your server and database. That means an HTTP request, which might take 300 ms or 3 seconds.
+
+A sync validator must return its answer immediately. It cannot wait for a server reply. So Angular gives you a second type: the async validator. It returns an `Observable` (or a `Promise`). Angular subscribes to it, waits, and then updates the control when the answer arrives.
+
+Analogy: You are at a club entrance.
+
+- Sync check: the bouncer looks at your ID card. Is it valid? Are you over 18? Answer in one second.
+- Async check: the bouncer rings head office to ask "Is this person already a member?" He has to wait on the phone. While waiting, your status is "pending".
+
+## Interacting with the Form Programmatically
+
+I can subscribe to the form and make the entered value saved in the local storage:
+
+```ts
+@Component({
+  selector: 'app-login',
+  standalone: true,
+  imports: [ReactiveFormsModule],
+  templateUrl: './login.component.html',
+  styleUrl: './login.component.css',
+})
+export class LoginComponent implements OnInit {
+  private destroyRef = inject(DestroyRef); // added!
+  
+  form = new FormGroup({
+    email: new FormControl('', {
+      validators: [Validators.required, Validators.email],
+      asyncValidators: [emailIsUnique],
+    }),
+    password: new FormControl('', {
+      validators: [
+        Validators.required,
+        Validators.minLength(6),
+        mustContainQuestionMark,
+      ],
+    }),
+  });
+
+  get emailIsInvalid() {
+    return (
+      this.form.controls.email.touched &&
+      this.form.controls.email.dirty &&
+      this.form.controls.email.invalid
+    );
+  }
+
+  get passwordIsInvalid() {
+    return (
+      this.form.controls.password.touched &&
+      this.form.controls.password.dirty &&
+      this.form.controls.password.invalid
+    );
+  }
+
+  ngOnInit(): void {  // added!
+    const subscription = this.form.valueChanges.pipe(debounceTime(500)).subscribe({
+      next: (value) => {
+        window.localStorage.setItem(
+          'saved-login-form',
+          JSON.stringify({ email: value.email }),
+        );
+      },
+    });
+    this.destroyRef.onDestroy(() => {
+      subscription.unsubscribe();
+    });
+  }
+
+  onSubmit() {
+    console.log(this.form);
+    const enteredEmail = this.form.value.email;
+    const enteredPassword = this.form.value.password;
+    console.log({
+      enteredEmail: enteredEmail,
+      enteredPassword: enteredPassword,
+    });
+  }
+}
+```
+
+So now once I type a few characters, they will be saved in the local storage:
+
+![Project13-screenshot31](/01-starting-project-section-13/section13-demo/Project-13-2026-10-06-2.png)
+
+Then, I can use the saved value in the local storage to pre-populate the form fields.
+
+I can just access one field `this.form.controls.email.setValue()`, but I can also use `this.form.patchValue()` which is useful when we want to partially update an overall form. `patchValue` will make sure only this `email` control will receive a new value.
+
+```ts
+  ngOnInit(): void {
+    // === START === Pre-populate the email field from the local storage
+    const savedForm = window.localStorage.getItem('saved-login-form');
+    if (savedForm) {
+      const loadedForm = JSON.parse(savedForm);
+      this.form.patchValue({
+        email: loadedForm.email,
+      });
+    }
+    // === END ===
+
+    const subscription = this.form.valueChanges.pipe(debounceTime(500)).subscribe({
+      next: (value) => {
+        window.localStorage.setItem(
+          'saved-login-form',
+          JSON.stringify({ email: value.email }),
+        );
+      },
+    });
+    this.destroyRef.onDestroy(() => {
+      subscription.unsubscribe();
+    });
+  }
+```
+
+So now once I hit reload, the email field of the form is prepopulated with the previously entered value.
+
+If I delete the saved item in the local storage and then hit reload, I can see the form started as empty form again.
+
+There's another way I can load the content from the local storage and pre-populate the form.
+
+I can move the logic of extracting from the local storage out of the component cycle.
+
+Get the `initialEmailValue` and use it as the initial value of the `email` control:
+
+```ts
+// added this chunk
+let initialEmailValue = '';
+const savedForm = window.localStorage.getItem('saved-login-form');
+if (savedForm) {
+  const loadedForm = JSON.parse(savedForm);
+  initialEmailValue = loadedForm.email;
+}
+
+@Component({
+  selector: 'app-login',
+  standalone: true,
+  imports: [ReactiveFormsModule],
+  templateUrl: './login.component.html',
+  styleUrl: './login.component.css',
+})
+export class LoginComponent implements OnInit {
+  private destroyRef = inject(DestroyRef);
+
+  form = new FormGroup({
+    email: new FormControl(initialEmailValue, { // added initialEmailValue here!
+      validators: [Validators.required, Validators.email],
+      asyncValidators: [emailIsUnique],
+    }),
+    password: new FormControl('', {
+      validators: [
+        Validators.required,
+        Validators.minLength(6),
+        mustContainQuestionMark,
+      ],
+    }),
+  });
+
+  get emailIsInvalid() {
+    return (
+      this.form.controls.email.touched &&
+      this.form.controls.email.dirty &&
+      this.form.controls.email.invalid
+    );
+  }
+
+  get passwordIsInvalid() {
+    return (
+      this.form.controls.password.touched &&
+      this.form.controls.password.dirty &&
+      this.form.controls.password.invalid
+    );
+  }
+
+  ngOnInit(): void {
+    // const savedForm = window.localStorage.getItem('saved-login-form'); // commented out this chunk!
+    // if (savedForm) {
+    //   const loadedForm = JSON.parse(savedForm);
+    //   this.form.patchValue({
+    //     email: loadedForm.email,
+    //   });
+    // }
+
+    const subscription = this.form.valueChanges
+      .pipe(debounceTime(500))
+      .subscribe({
+        next: (value) => {
+          window.localStorage.setItem(
+            'saved-login-form',
+            JSON.stringify({ email: value.email }),
+          );
+        },
+      });
+    this.destroyRef.onDestroy(() => {
+      subscription.unsubscribe();
+    });
+  }
+
+  onSubmit() {
+    console.log(this.form);
+    const enteredEmail = this.form.value.email;
+    const enteredPassword = this.form.value.password;
+    console.log({
+      enteredEmail: enteredEmail,
+      enteredPassword: enteredPassword,
+    });
+  }
+}
+```
+
+This is enough for a simple client side application, but not for an application with server side (there will be server side pre-rendering topic to learn about from this tutorial).
