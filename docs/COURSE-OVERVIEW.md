@@ -107,7 +107,7 @@ Last update: Aug 5, 2026.
 
 I will skip it for now.
 
-## Section 9: Understanding Services &amp; Dependency Injection - Deep Dive
+## Section 9: Understanding Services & Dependency Injection - Deep Dive
 
 Last update: Aug 22, 2026.
 
@@ -129,19 +129,19 @@ After Section 9, I'm doing this section 11 exercise. Finally, finish this sectio
 
 Next, I will do Section 13.
 
-## Section 12: Sending HTTP Requests &amp; Handling Responses
+## Section 12: Sending HTTP Requests & Handling Responses
 
 Last update: Sep 25, 2026.
 
 I will continue to Section 13 first and then go back to section 14 with a new branch, `app-easy-task-routing-v2`.
 
-## Section 13: Handling User Input &amp; Working with Forms (Template-driven &amp; Reactive)
+## Section 13: Handling User Input & Working with Forms (Template-driven & Reactive)
 
 Last update: Sep 26, 2026.
 
 I just started this section 13 on Sep 26, 2026. Next, I will do section 14 with a new branch, `app-easy-task-routing-v2`.
 
-## Section 14: Routing &amp; Building Multi-page Single Page Applications
+## Section 14: Routing & Building Multi-page Single Page Applications
 
 Last update: Sep 8, 2026.
 
@@ -157,7 +157,7 @@ So both feature branch has the new code files from the section 12.
 
 Hopefully, that allows me to continue to work on both feature branches without interfering each other's files.
 
-## Section 15: Code Splitting &amp; Deferrable Views
+## Section 15: Code Splitting & Deferrable Views
 
 Last update: Aug 5, 2026.
 
@@ -169,21 +169,33 @@ Last update: Aug 5, 2026.
 
 I will skip it for now.
 
-## Section 17: Course Roundup &amp; Next Steps
+## Section 17: Course Roundup & Next Steps
 
 Last update: Aug 5, 2026.
 
 I will skip it for now.
 
-## Angular < 16 chucnk
+## Angular < 16 chunck
 
 Last update: Aug 5, 2026.
 
 I will skip them for now.
 
-## Section 36: Authentication &amp; Route Protection in Angular<
+## Section 36: Authentication & Route Protection in Angular
 
 Last update: Aug 5, 2026.
+
+I will skip it for now.
+
+## Section 37: Dynamic Components [Angular < 16]
+
+Last update: Oct 6, 2026.
+
+I will skip it for now.
+
+## Section 38: Angular Modules & Optimizing Angular Apps [Angular < 16]
+
+Last update: Oct 6, 2026.
 
 I will skip it for now.
 
