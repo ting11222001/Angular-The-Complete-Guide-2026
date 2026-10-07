@@ -1686,3 +1686,156 @@ export class LoginComponent implements OnInit {
 ```
 
 This is enough for a simple client side application, but not for an application with server side (there will be server side pre-rendering topic to learn about from this tutorial).
+
+## Exercise: Problem
+
+Now use the sign up component instead of the log in component.
+
+In `app.component.html`:
+
+```html
+<header>
+  <img src="logo.jpg" alt="A form and a pencil" />
+  <h1>Angular Forms</h1>
+</header>
+
+<!-- <app-login /> -->
+<app-signup />
+```
+
+Try adding the reactive form and its controls for the email and password field.
+
+The Sign up button should log the control value to the console tab.
+
+The Reset button should clear out the fields.
+
+### My try!
+
+First, in the `SignupComponent` I created a `form` property in the TypeScript class. It's `FormGroup` type.
+
+```ts
+import { Component } from '@angular/core';
+import { FormControl, FormGroup, ReactiveFormsModule } from '@angular/forms';
+
+@Component({
+  selector: 'app-signup',
+  standalone: true,
+  imports: [ReactiveFormsModule], // added!
+  templateUrl: './signup.component.html',
+  styleUrl: './signup.component.css',
+})
+export class SignupComponent {
+  form = new FormGroup({  // added!
+    email: new FormControl(''),
+    password: new FormControl(''),
+  });
+
+  onSubmit() {  // added!
+    console.log(this.form.value);
+  }
+}
+```
+
+Next, I tried to add these in the Signup component template:
+
+- `[formGroup]` in `<form [formGroup]="form">` only works after I added `imports: [ReactiveFormsModule]` in the component
+- Added `formControlName="email"` and `formControlName="password"` to the `input` tags
+- `(click)="onSubmit()"` is added to the Submit button
+
+```html
+<form [formGroup]="form"> <--- added!
+  <h2>Welcome on board!</h2>
+  <p>We just need a little bit of data from you to get you started 🚀</p>
+
+  <div class="control">
+    <label for="email">Email</label>
+    <input id="email" type="email" name="email" formControlName="email" />
+  </div>
+
+  <div class="control-row">
+    <div class="control">
+      <label for="password">Password</label>
+      <input
+        id="password"
+        type="password"
+        name="password"
+        formControlName="password"
+      />
+    </div>
+
+    ...
+
+  <p class="form-actions">
+    <button type="reset" class="button button-flat">Reset</button>
+    <button type="submit" class="button" (click)="onSubmit()">Sign up</button>
+  </p>
+</form>
+```
+
+Now I can fill in the email and password and hit Submit to see the logged out values:
+
+![Project13-screenshot32](/01-starting-project-section-13/section13-demo/Project-13-2026-10-07-1.png)
+
+And click reset will clear out both the email and password fields:
+
+![Project13-screenshot33](/01-starting-project-section-13/section13-demo/Project-13-2026-10-07-2.png)
+
+## Exercise: Solution
+
+He also started by creating the `form` property of `FormGroup` type in the TypeScript class. 
+
+He just added the validators to the email and password control fields:
+
+```ts
+@Component({
+  selector: 'app-signup',
+  standalone: true,
+  imports: [ReactiveFormsModule],
+  templateUrl: './signup.component.html',
+  styleUrl: './signup.component.css',
+})
+export class SignupComponent {
+  form = new FormGroup({
+    email: new FormControl('', {
+      validators: [Validators.required, Validators.email]
+    }),
+    password: new FormControl('', {
+      validators: [Validators.required, Validators.minLength(6)]
+    }),
+  });
+}
+```
+
+And he reminded us again about adding directives in the template in order to connect with the `form` property in the TypeScript class.
+
+For those directives to be available, he reminded us again about adding `imports: [ReactiveFormsModule]` in the component.
+
+He mentioned that I can do either `[formControl]="form.controls.email"` or use the shortcut which is `formControlName="email"`:
+
+```html
+<input id="email" type="email" name="email" formControlName="email" />
+```
+
+He reminded that for submit, we can use `(ngSubmit)="onSubmit()` on the entire form like this:
+
+```html
+<form [formGroup]="form" (ngSubmit)="onSubmit()">
+  ...
+</form>
+```
+
+instead of `(onClick)="onSubmit()"` on the Sign up button:
+
+```html
+<button type="submit" class="button" (onClick)="onSubmit()">Sign up</button>`
+```
+
+But for the reset button, he does use the `onClick` listener, and he calls the `reset()` on that form object like this:
+
+```ts
+onReset() {
+  this.form.reset();
+}
+```
+
+so that we can make sure the internally managed status is reset.
