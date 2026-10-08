@@ -1839,3 +1839,146 @@ onReset() {
 ```
 
 so that we can make sure the internally managed status is reset.
+
+## Connecting & Registering Inputs For A Complex Form
+
+Start registering all the input fields the `form` property in the TypeScript class.
+
+Added confirmPassword from this section:
+
+![Project13-screenshot34](/01-starting-project-section-13/section13-demo/Project-13-2026-10-08-1.png)
+
+```ts
+export class SignupComponent {
+  form = new FormGroup({
+    email: new FormControl('', {
+      validators: [Validators.required, Validators.email]
+    }),
+    password: new FormControl('', {
+      validators: [Validators.required, Validators.minLength(6)]
+    }),
+    confirmPassword: new FormControl('', {
+      validators: [Validators.required, Validators.minLength(6)] // will build a custom validator to make sure both pwd are equal
+    }),
+  });
+```
+
+Then, added names and address from this section:
+
+![Project13-screenshot35](/01-starting-project-section-13/section13-demo/Project-13-2026-10-08-2.png)
+
+```ts
+export class SignupComponent {
+  form = new FormGroup({
+    email: new FormControl('', {
+      validators: [Validators.required, Validators.email]
+    }),
+    password: new FormControl('', {
+      validators: [Validators.required, Validators.minLength(6)]
+    }),
+    confirmPassword: new FormControl('', {
+      validators: [Validators.required, Validators.minLength(6)] // will build a custom validator to make sure both pwd are equal
+    }),
+    // Name and Address
+    firstName: new FormControl('', {
+      validators: [Validators.required]
+    }),
+    lastName: new FormControl('', {
+      validators: [Validators.required]
+    }),
+    street: new FormControl('', {
+      validators: [Validators.required]
+    }),
+    number: new FormControl('', {
+      validators: [Validators.required]
+    }),
+    postalCode: new FormControl('', {
+      validators: [Validators.required]
+    }),
+    city: new FormControl('', {
+      validators: [Validators.required]
+    }),
+  });
+```
+
+Next, register the input of 'What best describes your role?' i.e. the drop down list to the form in TypeScript class.
+
+![Project13-screenshot36](/01-starting-project-section-13/section13-demo/Project-13-2026-10-08-3.png)
+
+It's basically a regular input, and the initial value of this drop down should be one of these valid ones in the `value` property in the template:
+
+```html
+  <div class="control-row">
+    <div class="control">
+      <label for="role">What best describes your role?</label>
+      <select id="role" name="role">
+        <option value="student">Student</option>
+        <option value="teacher">Teacher</option>
+        <option value="employee">Employee</option>
+        <option value="founder">Founder</option>
+        <option value="other">Other</option>
+      </select>
+    </div>
+  </div>
+```
+
+And since `FormControl` is of generic type, so I can add a type check to it.
+
+So here the `role` can become a `FormControl` that allows only certain strings:
+
+```ts
+// old
+role: new FormControl('student')
+
+// new
+role: new FormControl<'student' | 'teacher' | 'employee' | 'founder' | 'other'>('student', {
+  validators: [Validators.required]
+})
+```
+
+Skip this 'How did you find us?' section, but I will come back to it later.
+
+Move on to this checkbox here:
+
+![Project13-screenshot37](/01-starting-project-section-13/section13-demo/Project-13-2026-10-08-4.png)
+
+Add agree:
+
+```ts
+export class SignupComponent {
+  form = new FormGroup({
+    email: new FormControl('', {
+      validators: [Validators.required, Validators.email]
+    }),
+    password: new FormControl('', {
+      validators: [Validators.required, Validators.minLength(6)]
+    }),
+    confirmPassword: new FormControl('', {
+      validators: [Validators.required, Validators.minLength(6)] // will build a custom validator to make sure both pwd are equal
+    }),
+    firstName: new FormControl('', {
+      validators: [Validators.required]
+    }),
+    lastName: new FormControl('', {
+      validators: [Validators.required]
+    }),
+    street: new FormControl('', {
+      validators: [Validators.required]
+    }),
+    number: new FormControl('', {
+      validators: [Validators.required]
+    }),
+    postalCode: new FormControl('', {
+      validators: [Validators.required]
+    }),
+    city: new FormControl('', {
+      validators: [Validators.required]
+    }),
+    role: new FormControl<'student' | 'teacher' | 'employee' | 'founder' | 'other'>('student', {
+      validators: [Validators.required]
+    }),
+    agree: new FormControl(false, { // default to false for unchecked
+      validators: [Validators.required]
+    })
+  });
+  ```
