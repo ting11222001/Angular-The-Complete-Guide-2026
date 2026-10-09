@@ -2008,3 +2008,191 @@ Then, try to fill in each field and log out the `FormGroup` object entirely as w
 ![Project13-screenshot39](/01-starting-project-section-13/section13-demo/Project-13-2026-10-09-2.png)
 
 ![Project13-screenshot40](/01-starting-project-section-13/section13-demo/Project-13-2026-10-09-3.png)
+
+## Working with Nested Form Groups
+
+First, group the `password` and `confirmPassword` fields together into `passwords` this new `FormControl`.
+
+```ts
+export class SignupComponent {
+  form = new FormGroup({
+    email: new FormControl('', {
+      validators: [Validators.required, Validators.email]
+    }),
+    // === new ===
+    passwords: new FormGroup({
+      password: new FormControl('', {
+        validators: [Validators.required, Validators.minLength(6)]
+      }),
+      confirmPassword: new FormControl('', {
+        validators: [Validators.required, Validators.minLength(6)]
+      }),
+    }),
+    // === old ===
+    // password: new FormControl('', {
+    //   validators: [Validators.required, Validators.minLength(6)]
+    // }),
+    // confirmPassword: new FormControl('', {
+    //   validators: [Validators.required, Validators.minLength(6)]
+    // }),
+```
+
+And the template here:
+
+```html
+  <div class="control-row">
+    <div class="control">
+      <label for="password">Password</label>
+      <input
+        id="password"
+        type="password"
+        name="password"
+        formControlName="password"
+      />
+    </div>
+
+    <div class="control">
+      <label for="confirm-password">Confirm Password</label>
+      <input
+        id="confirm-password"
+        type="password"
+        name="confirm-password"
+        formControlName="confirmPassword"
+      />
+    </div>
+  </div>
+```
+
+Is now updated into the below i.e. adding sth on the shared parent tag, ` <div class="control-row">`.
+
+For example, add the full path by using `[formGroup]="form.controls.passwords"`:
+
+```html
+  <div class="control-row" [formGroup]="form.controls.passwords"> <--- here!
+    <div class="control">
+      <label for="password">Password</label>
+      <input
+        id="password"
+        type="password"
+        name="password"
+        formControlName="password"
+      />
+    </div>
+
+    <div class="control">
+      <label for="confirm-password">Confirm Password</label>
+      <input
+        id="confirm-password"
+        type="password"
+        name="confirm-password"
+        formControlName="confirmPassword"
+      />
+    </div>
+  </div>
+```
+
+or shorten it by using `formGroupName`:
+
+```html
+<div class="control-row" formGroupName="passwords"> <--- here!
+  <div class="control">
+    <label for="password">Password</label>
+    <input
+      id="password"
+      type="password"
+      name="password"
+      formControlName="password"
+    />
+  </div>
+
+  <div class="control">
+    <label for="confirm-password">Confirm Password</label>
+    <input
+      id="confirm-password"
+      type="password"
+      name="confirm-password"
+      formControlName="confirmPassword"
+    />
+  </div>
+</div>
+```
+
+Now fill in the password and confirm password field and then hit Sign up, the `FormGroup` object will have this new `passwords` property in the `value` property:
+
+![Project13-screenshot41](/01-starting-project-section-13/section13-demo/Project-13-2026-10-09-4.png)
+
+Next, use the same design to create `address` this new `FormControl`.
+
+```ts
+export class SignupComponent {
+  form = new FormGroup({
+    // skip...
+    // === new ===
+    address: new FormGroup({
+      street: new FormControl('', {
+        validators: [Validators.required]
+      }),
+      number: new FormControl('', {
+        validators: [Validators.required]
+      }),
+      postalCode: new FormControl('', {
+        validators: [Validators.required]
+      }),
+      city: new FormControl('', {
+        validators: [Validators.required]
+      }),
+    }),
+    // skip...
+  });
+```
+
+Then, update the template by adding the `formGroupName` here at `<fieldset>` tag:
+
+```html
+  <fieldset formGroupName="address"> <--- here!
+    <legend>Your Address</legend>
+
+    <div class="control-row">
+      <div class="control">
+        <label for="street">Street</label>
+        <input
+          type="text"
+          id="street"
+          name="street"
+          formControlName="street"
+        />
+      </div>
+
+      <div class="control">
+        <label for="number">Number</label>
+        <input
+          type="text"
+          id="number"
+          name="number"
+          formControlName="number"
+        />
+      </div>
+    </div>
+
+    <div class="control-row">
+      <div class="control">
+        <label for="postal-code">Postal Code</label>
+        <input
+          type="text"
+          id="postal-code"
+          name="postal-code"
+          formControlName="postalCode"
+        />
+      </div>
+
+      <div class="control">
+        <label for="city">City</label>
+        <input type="text" id="city" name="city" formControlName="city" />
+      </div>
+    </div>
+  </fieldset>
+```
+
+Again, hit the Sign up button in the UI, and now the `value` object of the `FormGroup` becomes more readable than before:
+
+![Project13-screenshot42](/01-starting-project-section-13/section13-demo/Project-13-2026-10-09-5.png)
