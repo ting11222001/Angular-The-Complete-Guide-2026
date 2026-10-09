@@ -47,6 +47,7 @@ export class SignupComponent {
 
   onSubmit() {
     console.log(this.form.value);
+    console.log(this.form);
   }
 
   onReset() {

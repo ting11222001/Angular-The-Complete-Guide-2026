@@ -1981,4 +1981,30 @@ export class SignupComponent {
       validators: [Validators.required]
     })
   });
-  ```
+```
+
+Next, add `formControlName` property, and `formControlName="<key name  from the FormGroup object in the TypeScript code>"` to the `input` and `select` tags (this one is for the `role` field specifically).
+
+For example, in the `SignupComponent` template:
+
+```html
+<input
+  id="confirm-password"
+  type="password"
+  name="confirm-password"
+  formControlName="confirmPassword"
+/>
+<!-- etc. -->
+<select id="role" name="role" formControlName="role"></select>
+```
+
+Now test if the fields are connected to the `form` in the TypeScript code correctly:
+- e.g. type something and then delete it all and then tap outside of the `required` fields, it will show error:
+
+![Project13-screenshot38](/01-starting-project-section-13/section13-demo/Project-13-2026-10-09-1.png)
+
+Then, try to fill in each field and log out the `FormGroup` object entirely as well as its `value` property, I should see the filled in values of each field:
+
+![Project13-screenshot39](/01-starting-project-section-13/section13-demo/Project-13-2026-10-09-2.png)
+
+![Project13-screenshot40](/01-starting-project-section-13/section13-demo/Project-13-2026-10-09-3.png)
