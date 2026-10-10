@@ -2252,3 +2252,52 @@ Then, link those `FormControls` to the template like this - basically wrap the `
 Now, in the UI I just randomly checked one of the checkbox in the `source` i.e. `How did you find us` section, then I can see the `value` property of the `FormGroup` object shows the correct matching boolean values accordingly:
 
 ![Project13-screenshot43](/01-starting-project-section-13/section13-demo/Project-13-2026-10-10-1.png)
+
+## Practice: Adding More Validation
+
+First, start by checking the `invalid` state of the `form` object which is of `FormGroup` type:
+
+```ts
+  onSubmit() {
+    if (this.form.invalid) {
+      console.log('INVALID FORM!');
+      return;
+    }
+    console.log(this.form.value);
+    console.log(this.form);
+  }
+```
+
+![Project13-screenshot44](/01-starting-project-section-13/section13-demo/Project-13-2026-10-10-2.png)
+
+Next, add an error message at the bottom of the Sign up form.
+
+Like this:
+
+```html
+<form [formGroup]="form" (ngSubmit)="onSubmit()">
+  <!-- skipped -->
+  <p class="control-error">
+    Invalid form data. Please check your input data.
+  </p>
+</form>
+```
+
+So I can show a generic error message like this now:
+
+![Project13-screenshot45](/01-starting-project-section-13/section13-demo/Project-13-2026-10-10-3.png)
+
+And I notice that since the Signup form is loaded, that error message paragraph is shown already, so it's better to add that `form.dirty` check. 
+
+Or better, just use `form.touched`, so it shows the error message whenever the user had touched a field, regardless of any remaining characters left in the fields or fields are cleared out:
+
+```html
+<form [formGroup]="form" (ngSubmit)="onSubmit()">
+  <!-- skipped -->
+  @if (form.touched && form.invalid) {
+    <p class="control-error">
+      Invalid form data. Please check your input data.
+    </p>
+  }
+</form>
+```
