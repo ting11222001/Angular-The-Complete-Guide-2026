@@ -2209,5 +2209,46 @@ One way is to create a form group (`FormGroup`) with three form controls (`FormC
 
 Another way is to use `FormArray`.
 
+It can be used when I don't need individual, unique names for each controls, Google, Referred by Friend, and Other.
 
+Start with adding a `FormArray` called `source`:
 
+```ts
+source: new FormArray([]),
+```
+
+Then, no need to give names. Just do the same numbers of `FormControl` values:
+
+```ts
+source: new FormArray([
+  new FormControl(false), // Google
+  new FormControl(false), // Referred by Friend
+  new FormControl(false), // Other
+]),
+```
+
+Then, link those `FormControls` to the template like this - basically wrap the `<fieldset formArrayName="source">` and then give incrementing numbers to the `formControlName="0"` in each `<input />`:
+
+```html
+<fieldset formGroupName="source">
+  <legend>How did you find us?</legend>
+  <div class="control">
+    <input type="checkbox" id="google" name="acquisition" value="google" formControlName="0" />
+    <label for="google">Google</label>
+  </div>
+
+  <div class="control">
+    <input type="checkbox" id="friend" name="acquisition" value="friend" formControlName="1" />
+    <label for="friend">Referred by friend</label>
+  </div>
+
+  <div class="control">
+    <input type="checkbox" id="other" name="acquisition" value="other" formControlName="2" />
+    <label for="other">Other</label>
+  </div>
+</fieldset>
+```
+
+Now, in the UI I just randomly checked one of the checkbox in the `source` i.e. `How did you find us` section, then I can see the `value` property of the `FormGroup` object shows the correct matching boolean values accordingly:
+
+![Project13-screenshot43](/01-starting-project-section-13/section13-demo/Project-13-2026-10-10-1.png)
