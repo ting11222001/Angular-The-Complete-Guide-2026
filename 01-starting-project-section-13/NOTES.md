@@ -2196,3 +2196,18 @@ Then, update the template by adding the `formGroupName` here at `<fieldset>` tag
 Again, hit the Sign up button in the UI, and now the `value` object of the `FormGroup` becomes more readable than before:
 
 ![Project13-screenshot42](/01-starting-project-section-13/section13-demo/Project-13-2026-10-09-5.png)
+
+## Working with Form Arrays
+
+Now go back to work on the 'How did you find us part' section in the form.
+
+They haven't been registered yet.
+
+Look at it, it's actually one input with a list of values that can be checked an unchecked.
+
+One way is to create a form group (`FormGroup`) with three form controls (`FormControl` i.e. each with a checkbox field), but each field needs its own names and options, which could be a bit annoying.
+
+Another way is to use `FormArray`.
+
+
+
