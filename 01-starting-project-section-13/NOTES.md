@@ -2301,3 +2301,314 @@ Or better, just use `form.touched`, so it shows the error message whenever the u
   }
 </form>
 ```
+
+## Creating Multi-Input Validators / Form Group Validators
+
+Now I'm learning how to create a custom validator that checks if the value of both `password` and `comfirmPassword` fields are the same.
+
+`FormGroup` also takes a second argument which is also a configuration object.
+
+```ts
+passwords: new FormGroup({
+  password: new FormControl('', {
+    validators: [Validators.required, Validators.minLength(6)]
+  }),
+  confirmPassword: new FormControl('', {
+    validators: [Validators.required, Validators.minLength(6)] // will build a custom validator to make sure both pwd are equal
+  }),
+  }, {
+    validators:[]
+  }),
+```
+
+Then, create a custom validator, `equalValues()`:
+
+```ts
+function equalValues(control: AbstractControl) {
+  // telling AbstractControl to give me the control with the name of 'password', and if the control exists, give me the value.
+  const password = control.get('password')?.value;
+  const confirmPassword = control.get('confirmPassword')?.value;
+
+  if (password === confirmPassword) {
+    return null;
+  }
+
+  return { passwordsNotEqual: true };
+}
+```
+
+This is `.get()` about - when there is a control with name given, it will give us the `AbstractControl` or it will give us `null`:
+
+```
+(method) AbstractControl<any, any>.get<"password">(path: "password"): AbstractControl<any, any> | null (+1 overload)
+
+Retrieves a child control given the control's name or path.
+```
+
+Then, use `equalValues()` here:
+
+```ts
+passwords: new FormGroup({
+  password: new FormControl('', {
+    validators: [Validators.required, Validators.minLength(6)]
+  }),
+  confirmPassword: new FormControl('', {
+    validators: [Validators.required, Validators.minLength(6)] // will build a custom validator to make sure both pwd are equal
+  }),
+}, {
+  validators:[equalValues]
+}),
+```
+
+And the validators is applied to this `passwords` form group, so it's linking to this in the template:
+
+```html
+<div class="control-row" formGroupName="passwords"> <--- here!
+  <div class="control">
+    <label for="password">Password</label>
+    <input
+      id="password"
+      type="password"
+      name="password"
+      formControlName="password"
+    />
+  </div>
+
+  <div class="control">
+    <label for="confirm-password">Confirm Password</label>
+    <input
+      id="confirm-password"
+      type="password"
+      name="confirm-password"
+      formControlName="confirmPassword"
+    />
+  </div>
+</div>
+```
+
+So now if I enter a short password in the `password` field and a long password in the `confirmPassword` field, it looks like nothing happens on the UI.
+
+However, I can see the validator is applied correctly to the `passwords` form group:
+
+![Project13-screenshot46](/01-starting-project-section-13/section13-demo/Project-13-2026-10-10-4.png)
+
+But to see a style change when `ng-invalid` is added, then I need to add this style.css to the Sign up form like this:
+
+```css
+[formgroupname].ng-invalid.ng-touched.ng-dirty label,
+.control:has(.ng-invalid.ng-touched.ng-dirty) label {
+  color: #f98b75;
+}
+
+[formgroupname].ng-invalid.ng-touched.ng-dirty input,
+input.ng-invalid.ng-touched.ng-dirty {
+  background-color: #fbdcd6;
+  border-color: #f84e2c;
+}
+```
+
+So now it's like this:
+
+![Project13-screenshot47](/01-starting-project-section-13/section13-demo/Project-13-2026-10-10-5.png)
+
+Then, only when I enter the same values for both `password` and `confirmPassword` fields, then the red styles will go away and `ng-valid` is now in the class of `<div class="control-row" formGroupName="passwords">`:
+
+![Project13-screenshot48](/01-starting-project-section-13/section13-demo/Project-13-2026-10-10-6.png)
+
+Now, `equalValues()` this custom validator works. Next, I can make `equalValues()` this custom validator more generic i.e. to create a validation factory to check any two values, not just for the `password` fields.
+
+The previous version:
+
+```ts
+function equalValues(control: AbstractControl) {
+  const password = control.get('password')?.value; // telling AbstractControl to give me the control with the name of 'password'
+  const confirmPassword = control.get('confirmPassword')?.value;
+
+  if (password === confirmPassword) {
+    return null;
+  }
+
+  return { passwordsNotEqual: true };
+}
+```
+
+Now, make `equalValues()` into a validation factory by making `equalValues()` return a function that receives the `AbstractControl` control.
+
+And `equalValues()` now takes in two control names which of type `string`.
+
+So now it looks like this:
+
+```ts
+function equalValues(controlName1: string, controlName2: string) {
+ return (control: AbstractControl) => {   // control will be the passwords FormGroup if equalValues is used in passwords' validators
+    const val1 = control.get(controlName1)?.value;
+    const val2 = control.get(controlName2)?.value;
+
+    if (val1 === val2) {
+      return null;
+    }
+
+    return { valuesNotEqual: true };
+ }
+}
+```
+
+Also, update the `equalValues()` call with two arguments for the `validators` of `passwords` form group:
+
+```ts
+passwords: new FormGroup({
+  password: new FormControl('', {
+    validators: [Validators.required, Validators.minLength(6)]
+  }),
+  confirmPassword: new FormControl('', {
+    validators: [Validators.required, Validators.minLength(6)] // will build a custom validator to make sure both pwd are equal
+  }),
+}, {
+  validators:[equalValues('password', 'confirmPassword')]
+}),
+```
+
+Now in the UI, the passwords and comfirm passwords fields validation should work as before.
+
+### Group Level Validator (Angular)
+
+One-liner: A validator receives the control it is attached to, so a validator on a FormGroup receives the whole group.
+
+Key points:
+
+1. Angular passes each validator the control it is attached to. You put `equalValues(...)` in the second argument of `new FormGroup(...)`. That second argument holds the options for the group itself. So Angular calls the validator with the passwords group.
+
+Compare it with the validators inside `password`:
+
+```ts
+password: new FormControl('', {
+  validators: [Validators.required, Validators.minLength(6)]
+}),
+```
+These are attached to the `password` FormControl. So `required` and `minLength` receive only that single control.
+
+Inside the validator, I write:
+
+```ts
+control.get('password')?.value
+control.get('confirmPassword')?.value
+```
+
+`.get('password')` means "find the child named `password` inside this `passwords` control". This only works because control is the group. The group has both children. A single `FormControl` has no children, so `.get()` would return `null`.
+
+I can console log the `control` inside the `equalValues()` like this:
+
+```ts
+function equalValues(controlName1: string, controlName2: string): ValidatorFn {
+ return (control: AbstractControl) => {   // control will be the passwords FormGroup.
+    console.log('=== equalValues validator === control passed in: ', control);
+
+    const val1 = control.get(controlName1)?.value;
+    const val2 = control.get(controlName2)?.value;
+
+    if (val1 === val2) {
+      return null;
+    }
+
+    return { valuesNotEqual: true };
+ }
+}
+```
+
+It gives me a `FormGroup` with two controls which proves that this is the `passwords` FormGroup:
+
+```
+controls: {password: FormControl2, confirmPassword: FormControl2}
+```
+
+2. Why the tutorial wants to make the `equalValues()` this custom validator becomes a validation factory
+
+Why make it a factory?
+
+Look at your old version. The names 'password' and 'confirmPassword' are written directly inside the function. So it can only ever compare those two fields.
+
+What if you also want to check email and confirmEmail? You would need to copy the whole function and change the names. That is repeated code.
+
+The factory version takes the two field names as inputs. Now one function works for any pair of fields:
+
+```ts
+equalValues('password', 'confirmPassword')
+equalValues('email', 'confirmEmail')
+```
+
+3. Why return a function that takes `AbstractControl`?
+
+This is the key part. Angular has a rule for validators. A validator must be a function that:
+
+- takes one argument, the control (`AbstractControl`), and
+- returns either `null` (valid) or an error object (invalid).
+
+This is specified in the doc (see the point no. 4 below, `4. Doc for ValidatorFn`).
+
+Angular calls the validator function i.e. `ValidatorFn`, which is the inner function returned by the factory itself. By default, it runs when the form is created and whenever a value in the control changes. For a group validator, this means any field inside the group. Angular passes in the control and nothing else. You cannot tell Angular "please also pass these two field names". So the factory receives the names first, and the inner function remembers them.
+
+So the tutorial splits the job into two steps:
+
+- Step 1 (you, once, during setup): call `equalValues('password', 'confirmPassword')`. This gives the names to the outer function.
+- Step 2 (Angular, many times): the outer function returns the inner function. That inner function has the shape Angular expects. Angular calls it with the control.
+
+The inner function still "remembers" `controlName1` and `controlName2`, even after the outer function has finished. This memory is called a closure in JavaScript.
+
+You have already used this pattern.
+
+Angular's own validators work the same way:
+
+```ts
+Validators.required        // used directly, no brackets, no settings needed
+Validators.minLength(6)    // a factory: you call it with 6, it returns the real validator
+```
+
+Your code moved from the `required` style to the `minLength(6)` style. Notice the usage changes too:
+
+```ts
+// Old: pass the function itself
+new FormGroup({ ... }, { validators: [equalValues] })
+
+// New: call the factory, pass what it returns
+new FormGroup({ ... }, { validators: [equalValues('password', 'confirmPassword')] })
+```
+
+You can add the return type. This makes TypeScript check the shape for you:
+
+```ts
+import { AbstractControl, ValidatorFn } from '@angular/forms';
+
+function equalValues(controlName1: string, controlName2: string): ValidatorFn {
+  return (control: AbstractControl) => { ... };
+}
+```
+
+
+4. Doc for `ValidatorFn` and why I can use it as a returned type for my custom `equalValues()` validator:
+
+```ts
+/**
+ * @description
+ * A function that receives a control and synchronously returns a map of
+ * validation errors if present, otherwise null.
+ *
+ * @publicApi
+ */
+export declare interface ValidatorFn {
+    (control: AbstractControl): ValidationErrors | null;
+}
+```
+
+5. Doc for `ValidationErrors` and why we're returning an object of validation error for the `equalValues()` like `return { valuesNotEqual: true };`:
+
+```ts
+/**
+ * @description
+ * Defines the map of errors returned from failed validation checks.
+ *
+ * @publicApi
+ */
+export declare type ValidationErrors = {
+    [key: string]: any;
+};
+```
