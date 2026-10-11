@@ -133,7 +133,7 @@ Next, I will do Section 13.
 
 Last update: Sep 25, 2026.
 
-I will continue to Section 13 first and then go back to section 14 with a new branch, `app-easy-task-routing-v2`.
+Finished it today. I will continue to Section 13 first and then go back to section 14 with a new branch, `app-easy-task-routing-v2`.
 
 ## Section 13: Handling User Input & Working with Forms (Template-driven & Reactive)
 
