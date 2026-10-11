@@ -137,9 +137,11 @@ I will continue to Section 13 first and then go back to section 14 with a new br
 
 ## Section 13: Handling User Input & Working with Forms (Template-driven & Reactive)
 
-Last update: Sep 26, 2026.
+Last update: Oct 11, 2026.
 
-I just started this section 13 on Sep 26, 2026. Next, I will do section 14 with a new branch, `app-easy-task-routing-v2`.
+Just finished this section today.
+
+Next, I will do section 14 with a new branch, `app-easy-task-routing-v2`.
 
 ## Section 14: Routing & Building Multi-page Single Page Applications
 
