@@ -3,7 +3,6 @@ import { AbstractControl, FormArray, FormControl, FormGroup, ReactiveFormsModule
 
 function equalValues(controlName1: string, controlName2: string): ValidatorFn {
  return (control: AbstractControl) => {   // control will be the passwords FormGroup.
-    console.log('=== equalValues validator === control passed in: ', control);
 
     const val1 = control.get(controlName1)?.value;
     const val2 = control.get(controlName2)?.value;

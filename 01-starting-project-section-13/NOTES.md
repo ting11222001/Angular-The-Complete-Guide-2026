@@ -2612,3 +2612,9 @@ export declare type ValidationErrors = {
     [key: string]: any;
 };
 ```
+
+## The final looks of the Signup form
+
+Make sure all the fields are filled in as my validator rules and hit Sign up:
+
+![Project13-screenshot49](/01-starting-project-section-13/section13-demo/Project-13-2026-10-11-1.png)
