@@ -145,19 +145,17 @@ Next, I will do section 14 with a new branch, `app-easy-task-routing-v2`.
 
 ## Section 14: Routing & Building Multi-page Single Page Applications
 
-Last update: Sep 8, 2026.
+Last update: Oct 11, 2026.
 
 I started doing this from Aug 29, 2026 onwards until the video No. 281 on Sep 8. 
 
 Just that at work I will need to work something similar to the section 12, so I have to switch over there first.
 
-I checked out to the `main` branch to setup all the code files for the section 12.
+I checked out to the `main` branch to setup all the code files for the section 12 and created a new branch for section 12, `app-http-place-picker` branch out of the latest state of the `main` branch. Then, I have finished section 12 on Sep 25, 2026 and section 13 on Oct 11, 2026.
 
-After that, I will create `app-easy-task-routing-v2` branch and `app-http-place-picker` branch out of the latest state of the `main` branch.
+Back to this section 14, I need to create a new branch out of the `main` branch.
 
-So both feature branch has the new code files from the section 12. 
-
-Hopefully, that allows me to continue to work on both feature branches without interfering each other's files.
+It will be `app-easy-task-routing-v2`.
 
 ## Section 15: Code Splitting & Deferrable Views
 
