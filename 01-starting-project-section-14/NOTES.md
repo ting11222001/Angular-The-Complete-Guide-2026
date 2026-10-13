@@ -10,6 +10,8 @@ Then, run `npm install`, and then `npm start`.
 
 It has two branches: first was `app-easy-task-routing` and then after decided to go in parallel with section 12, I created `app-easy-task-routing-v2`.
 
+Screenshots are in `01-starting-project-section-14/section14-demo` folder.
+
 ## What is Routing
 
 Angular apps are single page applications, which means there's only a single HTML page that's being served by the server that's hosting my Angular application to the client i.e. to the user visiting the website that's requesting this website/angular web app.
@@ -928,3 +930,53 @@ export class NewTaskComponent {
   }
 }
 ```
+
+## Adding A "Not Found" Route
+
+I can set up a 'catch all' route.
+
+This route will be activated if no route is matched.
+
+`NoFoundComponent` is the fall-back component.
+
+I used ng command to create the files:
+
+```bash
+$ ng generate component not-found --skip-tests
+CREATE src/app/not-found/not-found.component.html (25 bytes)
+CREATE src/app/not-found/not-found.component.ts (257 bytes)
+CREATE src/app/not-found/not-found.component.css (0 bytes)
+```
+
+In `app.routes.ts`:
+
+```ts
+export const routes: Routes = [
+    {
+        path: '',  // <your-domain>/
+        component: NoTaskComponent
+    },
+    {
+        path: 'users/:userId', // <your-domain>/users/u1
+        component: UserTasksComponent,
+        children: [
+            {
+                path: 'tasks', // <your-domain>/users/u1/tasks -> temporary route to show all tasks for a user
+                component: TasksComponent
+            },
+            {
+                path: 'tasks/new', // <your-domain>/users/u1/tasks/new
+                component: NewTaskComponent
+            }
+        ]
+    },
+    {
+        path: '**', // <your-domain>/anything-else
+        component: NotFoundComponent
+    }
+]
+```
+
+So in the URL if I type `http://localhost:4200/tasks`, then it should show the `NotFoundComponent` like this:
+
+![Project14-screenshot1](/01-starting-project-section-14/section14-demo/Project-14-2026-10-13-1.png)
