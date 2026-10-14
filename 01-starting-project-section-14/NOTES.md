@@ -980,3 +980,255 @@ export const routes: Routes = [
 So in the URL if I type `http://localhost:4200/tasks`, then it should show the `NotFoundComponent` like this:
 
 ![Project14-screenshot1](/01-starting-project-section-14/section14-demo/Project-14-2026-10-13-1.png)
+
+## Redirecting Users
+
+If the url is just `http://localhost:4200/users/u1` and no other segments later e.g. no `tasks` or `tasks/new`, then it will show an empty area under `UserTasksComponent`:
+
+![Project14-screenshot2](/01-starting-project-section-14/section14-demo/Project-14-2026-10-14-1.png)
+
+I want to make sure that even if the url is just `http://localhost:4200/users/u1`, the user gets automatically redirected to the tasks child route i.e. `http://localhost:4200/users/u1/tasks` to show the tasks from the `TaskComponent`.
+
+In `app.routes.ts`:
+
+```ts
+{
+        path: 'users/:userId', // <your-domain>/users/u1
+        component: UserTasksComponent,
+        children: [
+            {
+                path: '',   // added here!
+                redirectTo: 'tasks',
+                pathMatch: 'prefix'
+            },
+            {
+                path: 'tasks', // <your-domain>/users/u1/tasks -> temporary route to show all tasks for a user
+                component: TasksComponent
+            },
+            {
+                path: 'tasks/new', // <your-domain>/users/u1/tasks/new
+                component: NewTaskComponent
+            }
+        ]
+    },
+```
+
+So now when I type the url as `http://localhost:4200/users/u1` and hit enter, it will automatically go to `http://localhost:4200/users/u1/tasks`:
+
+![Project14-screenshot3](/01-starting-project-section-14/section14-demo/Project-14-2026-10-14-2.png)
+
+
+
+### But what is this `redirectTo: 'tasks'` and `pathMatch: 'prefix'` about?
+
+This is a child route of `users/:userId`. So its `path: ''` means "nothing after `/users/u1`".
+
+`redirectTo: 'tasks'` tells Angular: when this route matches, do not load a component. Instead, send the user to `tasks`. The redirect is relative, so `/users/u1` becomes `/users/u1/tasks`, and `TasksComponent` is shown.
+
+`pathMatch` decides WHEN the empty path counts as a match:
+
+- `pathMatch: 'full'` means the remaining URL must be exactly `''`.
+  So only `/users/u1` matches and is redirected.
+
+- `pathMatch: 'prefix'` means the remaining URL must START with `''`.
+  But every URL starts with an empty string. So in theory `/users/u1/tasks`
+  and `/users/u1/tasks/new` also match this route first.
+
+That is why, for an empty path with `redirectTo`, Angular recommends `pathMatch: 'full'`.
+With `'full'`, the redirect only fires when the user lands on `/users/u1` with nothing after it.
+
+So within the nested child routes using `prefix` or `full` doesn't cause any problems:
+
+```ts
+{
+        path: 'users/:userId', // <your-domain>/users/u1
+        component: UserTasksComponent,
+        children: [
+            {
+                path: '',
+                redirectTo: 'tasks',
+                pathMatch: 'prefix' // it can also be pathMatch: 'full'
+            },
+            {
+                path: 'tasks', // <your-domain>/users/u1/tasks -> temporary route to show all tasks for a user
+                component: TasksComponent
+            },
+            {
+                path: 'tasks/new', // <your-domain>/users/u1/tasks/new
+                component: NewTaskComponent
+            }
+        ]
+    },
+```
+
+But if it's a top level path, and if I use `prefix`, then since every URL starts with an empty string, this `prefix` setting will cause infinite redirects:
+
+```ts
+    {
+        path: '',  // <your-domain>/
+        // component: NoTaskComponent
+        redirectTo: '/users/u1', // <your-domain>/users/u1
+        pathMatch: 'prefix' // here!
+    },
+```
+
+To check, if I then type `http://localhost:4200/`:
+
+![Project14-screenshot4](/01-starting-project-section-14/section14-demo/Project-14-2026-10-14-3.png)
+
+So, I should use the `full` here:
+
+```ts
+    {
+        path: '',  // <your-domain>/
+        // component: NoTaskComponent
+        redirectTo: '/users/u1', // <your-domain>/users/u1
+        pathMatch: 'full' // here!
+    },
+```
+
+### `/` is the same as `http://localhost:4200`
+
+Angular’s router only looks at the part after the domain. It ignores `http://localhost:4200`.
+
+So all of these give the router the same empty path '':
+
+`http://localhost:4200`
+`http://localhost:4200/`
+`/` (my shorthand in the notes)
+
+Likewise, `http://localhost:4200/users/u1/tasks` is just `users/u1/tasks` to the router.
+
+
+### Why `'/users/u1'` and not `'users/u1'`?
+
+With a leading `/`, the redirect is absolute. Angular replaces the whole URL, starting from the root.
+Without it, the redirect is relative. Angular replaces only the part matched at that route’s level.
+
+`'/users/u1'` (with slash) is an absolute redirect. It always goes to `/users/u1`.
+
+`'users/u1'` (no slash) is relative to where this route sits.
+
+At the top level both work the same. Inside child routes, only the slash version
+goes to the right place.
+
+#### Absolute redirect: `'/users/u1'` with `prefix` at the top level route will cause infinite redirects
+
+This doesn't work:
+
+```ts
+    {
+        path: '',  // <your-domain>/
+        redirectTo: '/users/u1', // <your-domain>/users/u1
+        pathMatch: 'prefix' // here!
+    },
+```
+
+Why:
+
+1. I visit `/`. The path is `''`.
+2. Route `path: ''` with `'prefix'` matches.
+3. `redirectTo` starts with `/`, so Angular throws away the current matching and starts again from the top with the new URL `/users/u1`.
+4. Starting from the top, Angular checks the first route again: `path: ''` with `'prefix'`. Does `users/u1` start with `''`? Yes, every path does.
+5. So it redirects to `/users/u1` again. Then again. And again.
+
+Each restart allows redirects again, so it never escapes. Newer Angular versions count these restarts and throw an "infinite redirect" error after a limit. That is likely what my screenshot shows.
+
+So, this will work:
+
+```ts
+    {
+        path: '',  // <your-domain>/
+        redirectTo: '/users/u1', // <your-domain>/users/u1
+        pathMatch: 'full' // here!
+    },
+```
+
+#### Relative redirect: `'users/u1'` with `prefix` at the top level route will NOT cause infinite redirects, but will still break the URL
+
+For example:
+
+1. Start with URL `/`
+
+Starts with nothing? Yes.
+
+Put `users/u1` in front of, so from `/` → becomes `/users/u1`, which is ✅
+
+2. Then if I get an URL `/users/u1/tasks` later
+
+Starts with `/`? Yes. (This is the problem. It catches this URL `/users/u1/tasks` too as every URL starts with `/`.)
+
+Put `users/u1` in front of `users/u1/tasks` → so becomes `/users/u1/users/u1/tasks`, which is ❌
+
+So don't do this:
+
+```ts
+    {
+        path: '',  // <your-domain>/
+        redirectTo: 'users/u1', // <your-domain>/users/u1
+        pathMatch: 'prefix' // here!
+    },
+```
+
+#### A warning about the relative version
+
+"No loop" does not mean it's correct. `'prefix'` still matches every URL at the top level. Try typing this straight into the address bar:
+
+```
+localhost:4200/users/u1/tasks
+```
+
+The `''` route may catch it first. A relative redirect keeps the remaining path, so it may end up at something like `/users/u1/users/u1/tasks`, then the not found page.
+
+I can confirm:
+
+`http://localhost:4200` -> `http://localhost:4200/users/u1/tasks` -> `http://localhost:4200/users/u1/users/u1/tasks` and not found page.
+
+**Rule of thumb:** when `path: ''` has a `redirectTo`, always use `pathMatch: 'full'`.
+
+Final working version:
+
+```ts
+import { Routes } from "@angular/router";
+import { TasksComponent } from "./tasks/tasks.component";
+import { NoTaskComponent } from "./tasks/no-task/no-task.component";
+import { UserTasksComponent } from "./users/user-tasks/user-tasks.component";
+import { NewTaskComponent } from "./tasks/new-task/new-task.component";
+import { NotFoundComponent } from "./not-found/not-found.component";
+
+export const routes: Routes = [
+    {
+        path: '',  // <your-domain>/
+        // component: NoTaskComponent
+        redirectTo: '/users/u1', // <your-domain>/users/u1
+        pathMatch: 'full'
+    },
+    {
+        path: 'users/:userId', // <your-domain>/users/u1
+        component: UserTasksComponent,
+        children: [
+            {
+                path: '',
+                redirectTo: 'tasks',
+                pathMatch: 'full'
+            },
+            {
+                path: 'tasks', // <your-domain>/users/u1/tasks -> temporary route to show all tasks for a user
+                component: TasksComponent
+            },
+            {
+                path: 'tasks/new', // <your-domain>/users/u1/tasks/new
+                component: NewTaskComponent
+            }
+        ]
+    },
+    {
+        path: '**', // <your-domain>/anything-else
+        component: NotFoundComponent
+    }
+]
+```
+
+So when `http://localhost:4200/` and hit enter, it will redirect to `http://localhost:4200/users/u1/tasks`. 
+
+Then `http://localhost:4200/users/u1/` and hit enter, it will redirect to `http://localhost:4200/users/u1/tasks`.
