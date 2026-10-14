@@ -1232,3 +1232,22 @@ export const routes: Routes = [
 So when `http://localhost:4200/` and hit enter, it will redirect to `http://localhost:4200/users/u1/tasks`. 
 
 Then `http://localhost:4200/users/u1/` and hit enter, it will redirect to `http://localhost:4200/users/u1/tasks`.
+
+#### Before entering the next course
+
+Tutorial recovers the top level path to show the `NoTaskComponent` instead of redirection from the last course.
+
+```ts
+export const routes: Routes = [
+    {
+        path: '',  // <your-domain>/
+        component: NoTaskComponent
+        // redirectTo: '/users/u1', // <your-domain>/users/u1
+        // pathMatch: 'full'
+    },
+```
+
+So type `http://localhost:4200/` will show me this:
+
+![Project14-screenshot5](/01-starting-project-section-14/section14-demo/Project-14-2026-10-14-4.png)
+

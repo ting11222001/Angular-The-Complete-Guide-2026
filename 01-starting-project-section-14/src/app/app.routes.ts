@@ -8,9 +8,9 @@ import { NotFoundComponent } from "./not-found/not-found.component";
 export const routes: Routes = [
     {
         path: '',  // <your-domain>/
-        // component: NoTaskComponent
-        redirectTo: '/users/u1', // <your-domain>/users/u1
-        pathMatch: 'full'
+        component: NoTaskComponent
+        // redirectTo: '/users/u1', // <your-domain>/users/u1
+        // pathMatch: 'full'
     },
     {
         path: 'users/:userId', // <your-domain>/users/u1
