@@ -1,9 +1,8 @@
 import { Routes } from "@angular/router";
-import { TasksComponent } from "./tasks/tasks.component";
 import { NoTaskComponent } from "./tasks/no-task/no-task.component";
 import { UserTasksComponent } from "./users/user-tasks/user-tasks.component";
-import { NewTaskComponent } from "./tasks/new-task/new-task.component";
 import { NotFoundComponent } from "./not-found/not-found.component";
+import { routes as userRoutes } from "./users/users.routes"; // use an alias to avoid name collision with the routes variable in this file
 
 export const routes: Routes = [
     {
@@ -15,21 +14,7 @@ export const routes: Routes = [
     {
         path: 'users/:userId', // <your-domain>/users/u1
         component: UserTasksComponent,
-        children: [
-            {
-                path: '',
-                redirectTo: 'tasks',
-                pathMatch: 'full'
-            },
-            {
-                path: 'tasks', // <your-domain>/users/u1/tasks -> temporary route to show all tasks for a user
-                component: TasksComponent
-            },
-            {
-                path: 'tasks/new', // <your-domain>/users/u1/tasks/new
-                component: NewTaskComponent
-            }
-        ]
+        children: userRoutes
     },
     {
         path: '**', // <your-domain>/anything-else

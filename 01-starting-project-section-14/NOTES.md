@@ -1251,3 +1251,86 @@ So type `http://localhost:4200/` will show me this:
 
 ![Project14-screenshot5](/01-starting-project-section-14/section14-demo/Project-14-2026-10-14-4.png)
 
+## Splitting Route Definitions Across Multiple Files
+
+Working with multiple lean files is better.
+
+Take out this `children` array in the `app.routes.ts`:
+
+```ts
+{
+        path: 'users/:userId', // <your-domain>/users/u1
+        component: UserTasksComponent,
+        children: [ // here!
+            {
+                path: '',
+                redirectTo: 'tasks',
+                pathMatch: 'full'
+            },
+            {
+                path: 'tasks', // <your-domain>/users/u1/tasks -> temporary route to show all tasks for a user
+                component: TasksComponent
+            },
+            {
+                path: 'tasks/new', // <your-domain>/users/u1/tasks/new
+                component: NewTaskComponent
+            }
+        ]
+    },
+```
+
+Move it into a new `users.routes.ts` in the `users` folder.
+
+So `users.routes.ts` looks like this:
+
+```ts
+import { Routes } from "@angular/router";
+import { TasksComponent } from "../tasks/tasks.component";
+import { NewTaskComponent } from "../tasks/new-task/new-task.component";
+
+export const routes: Routes = [
+    {
+        path: '',
+        redirectTo: 'tasks',
+        pathMatch: 'full'
+    },
+    {
+        path: 'tasks',
+        component: TasksComponent
+    },
+    {
+        path: 'tasks/new',
+        component: NewTaskComponent
+    }
+]
+```
+
+Then, the `app.routes.ts` becomes so much leaner:
+
+```ts
+import { Routes } from "@angular/router";
+import { NoTaskComponent } from "./tasks/no-task/no-task.component";
+import { UserTasksComponent } from "./users/user-tasks/user-tasks.component";
+import { NotFoundComponent } from "./not-found/not-found.component";
+import { routes as userRoutes } from "./users/users.routes"; // use an alias to avoid name collision with the routes variable in this file
+
+export const routes: Routes = [
+    {
+        path: '',  // <your-domain>/
+        component: NoTaskComponent
+    },
+    {
+        path: 'users/:userId', // <your-domain>/users/u1
+        component: UserTasksComponent,
+        children: userRoutes  // user the children routes defined in the user.routes.ts here!
+    },
+    {
+        path: '**', // <your-domain>/anything-else
+        component: NotFoundComponent
+    }
+]
+```
+
+Then, the UI in the browser should work exactly the same as before.
+
+## Activated Route vs Activated Route Snapshot
