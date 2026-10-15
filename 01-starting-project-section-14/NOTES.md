@@ -1334,3 +1334,83 @@ export const routes: Routes = [
 Then, the UI in the browser should work exactly the same as before.
 
 ## Activated Route vs Activated Route Snapshot
+
+Go to `http://localhost:4200/users/u1/tasks`.
+
+In `UserTasksComponent`, add these logs.
+
+```ts
+export class UserTasksComponent implements OnInit {
+  private activatedRoute = inject(ActivatedRoute);
+  private usersService = inject(UsersService);
+  private destroyRef = inject(DestroyRef);
+  userName = '';
+
+  ngOnInit() {
+    console.log('this.activatedRoute: ', this.activatedRoute);
+    console.log('this.activatedRoute.paramMap: ', this.activatedRoute.paramMap);
+    console.log('this.activatedRoute.snapshot: ', this.activatedRoute.snapshot);
+    const subscription = this.activatedRoute.paramMap.subscribe({
+      next: (paramMap: ParamMap) => 
+        this.userName = this.usersService.users.find(user => user.id === paramMap.get('userId'))?.name || ''
+    });
+    this.destroyRef.onDestroy(() => subscription.unsubscribe());
+  }
+}
+```
+
+The key difference between `this.activatedRoute` vs `this.activatedRoute.snapshot` is that `snapshot` gives us actual values that I can use directly whereas `activatedRoute` just gives me the observables.
+
+`this.activatedRoute` looks like this:
+
+![Project14-screenshot6](/01-starting-project-section-14/section14-demo/Project-14-2026-10-15-1.png)
+
+
+`this.activatedRoute.snapshot` looks like this:
+
+![Project14-screenshot7](/01-starting-project-section-14/section14-demo/Project-14-2026-10-15-2.png)
+
+For example, I can get the `userId` directly from `params: {userId: 'u1'}` or `paramMap` here:
+
+![Project14-screenshot8](/01-starting-project-section-14/section14-demo/Project-14-2026-10-15-3.png)
+
+So overall the log can be added like this:
+
+```ts
+export class UserTasksComponent implements OnInit {
+  private activatedRoute = inject(ActivatedRoute);
+  private usersService = inject(UsersService);
+  private destroyRef = inject(DestroyRef);
+  userName = '';
+
+  ngOnInit() {
+    console.log('this.activatedRoute: ', this.activatedRoute);
+    console.log('this.activatedRoute.paramMap: ', this.activatedRoute.paramMap);
+    console.log('this.activatedRoute.snapshot: ', this.activatedRoute.snapshot);
+    console.log('this.activatedRoute.snapshot.params: ', this.activatedRoute.snapshot.params);
+    console.log(
+      "this.activatedRoute.snapshot.paramMap.get('userId'): ",
+      this.activatedRoute.snapshot.paramMap.get('userId'),
+    );
+    const subscription = this.activatedRoute.paramMap.subscribe({
+      next: (paramMap: ParamMap) =>
+        (this.userName =
+          this.usersService.users.find(
+            (user) => user.id === paramMap.get('userId'),
+          )?.name || ''),
+    });
+    this.destroyRef.onDestroy(() => subscription.unsubscribe());
+  }
+}
+```
+
+And the result is like this:
+
+![Project14-screenshot9](/01-starting-project-section-14/section14-demo/Project-14-2026-10-15-4.png)
+
+The downside of using `snapshot` in the `ngOnInit()` is that it's not a reactive object anymore. `ngOnInit()` doesn't re-execute.
+
+For example, if I now go to another user like `userId:  u2`, then the user snapshot value will stay as `userId:  u1`.
+
+So it was actually better for me to set up a subscription on the `this.activatedRoute.paramMap` so that when the `UserTasksComponent` is re-used for other users, the route parameter can change accordingly.
+
