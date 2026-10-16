@@ -1414,3 +1414,138 @@ For example, if I now go to another user like `userId:  u2`, then the user snaps
 
 So it was actually better for me to set up a subscription on the `this.activatedRoute.paramMap` so that when the `UserTasksComponent` is re-used for other users, the route parameter can change accordingly.
 
+## Setting Query Parameters
+
+Using query parameters for the sorting has an advantage - which is we're now able to make the sorted result as shareable link.
+
+E.g. `http://localhost:4200/users/u3/tasks?order=desc`.
+
+Angular Router allows us to easily add and extract the query parameters from the url.
+
+In `TasksComponent` template:
+
+```html
+<p>
+  <a routerLink="./"> <--- means staying on the current page
+    Sort Ascending / Descending
+  </a>
+</p>
+```
+
+Remember to add the imports of `RouterLink` to enable those `routerLink` directives:
+
+```ts
+import { TaskComponent } from './task/task.component';
+import { TasksService } from './tasks.service';
+import { RouterLink } from '@angular/router';
+
+@Component({
+  selector: 'app-tasks',
+  standalone: true,
+  templateUrl: './tasks.component.html',
+  styleUrl: './tasks.component.css',
+  imports: [TaskComponent, RouterLink],
+})
+export class TasksComponent {
+```
+
+The `queryParams` input actually wants to take in an object, so we need to make it as a property binding:
+
+```html
+<p>
+  <a routerLink="./" [queryParams]="{order: 'asc'}"> <--- means encoding any key value pairs into the url
+    Sort Ascending / Descending
+  </a>
+</p>
+```
+
+Now on the UI, a hyper link of `Sort Ascending / Descending` will appear and click on it will give me this url: `http://localhost:4200/users/u3/tasks?order=asc`:
+
+![Project14-screenshot10](/01-starting-project-section-14/section14-demo/Project-14-2026-10-16-1.png)
+
+Then, add a nice styling to the anchor link in `tasks.component.css`:
+
+```css
+a {
+  text-decoration: none;
+  color: #c6a7ed;
+}
+
+a:hover, a:active {
+  text-decoration: underline;
+  color: #9b79c6;
+} 
+```
+
+Just that when hovering over the link it becomes darker with underline.
+
+## Extracting Query Parameters via Inputs
+
+How do I extract the query parameters from `TasksComponent` template here:
+
+```html
+<p>
+  <a routerLink="./" [queryParams]="{order: 'asc'}"> <--- how?
+    Sort Ascending / Descending
+  </a>
+</p>
+```
+
+Since in the `app.config.ts` I have this `withComponentInputBinding()` set here:
+
+```ts
+export const appRoutes: ApplicationConfig = {
+   providers: [
+      provideRouter(
+         routes, 
+         withComponentInputBinding(), // here!
+         withRouterConfig({
+            paramsInheritanceStrategy: 'always'
+         })
+      )
+   ], 
+}
+```
+
+So in the `TasksComponent` I can create an Input Signal with the same name, `order`, like this `order = input<'asc' | 'desc'>('asc');`, and it will be set dynamically based on the query param in the route thanks to the router configuration above:
+
+```ts
+export class TasksComponent {
+  userId = input.required<string>();
+  order = input<'asc' | 'desc'>('asc'); // here I cna use automatic input binding!
+  private tasksService = inject(TasksService);
+  userTasks = computed(() => this.tasksService.allTasks().filter(task => task.userId === this.userId()));
+  constructor() {
+    effect(() => {
+      console.log('User tasks updated:', this.userTasks());
+      console.log('userId: ', this.userId());
+    });
+  }
+}
+```
+
+So the template can now connect the `order` in the query with the input signal, `order()`, like this:
+
+```html
+<p>
+  <a routerLink="./" [queryParams]="{order: order() === 'asc' ? 'desc' : 'asc'}">
+    Sort {{ order() === 'asc' ? 'Descending' : 'Ascending' }}
+  </a>
+</p>
+```
+
+`"{order: order() === 'asc' ? 'desc' : 'asc'}"` means: when it's set to asc, it will be set to desc. If it is undefined or desc, it will be set to asc.
+
+`Sort {{ order() === 'asc' ? 'Descending' : 'Ascending' }}` means: this string interpolation. Based on the query param in the url, we change the display text.
+
+On the UI, starts with no query parameter:
+
+![Project14-screenshot11](/01-starting-project-section-14/section14-demo/Project-14-2026-10-16-2.png)
+
+Once clicking on `Sort Ascending`, it becomes `Descending` and the `?order=asc` this query param is added to the url (`http://localhost:4200/users/u1/tasks?order=asc`):
+
+![Project14-screenshot12](/01-starting-project-section-14/section14-demo/Project-14-2026-10-16-3.png)
+
+Then if I click again on the `Sort Descending`, it becomes `?order=desc` to the url (`http://localhost:4200/users/u1/tasks?order=desc`) and the hyperlink is now `Sort Ascending`:
+
+![Project14-screenshot13](/01-starting-project-section-14/section14-demo/Project-14-2026-10-16-4.png)
