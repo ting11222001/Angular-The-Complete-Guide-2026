@@ -1549,3 +1549,71 @@ Once clicking on `Sort Ascending`, it becomes `Descending` and the `?order=asc` 
 Then if I click again on the `Sort Descending`, it becomes `?order=desc` to the url (`http://localhost:4200/users/u1/tasks?order=desc`) and the hyperlink is now `Sort Ascending`:
 
 ![Project14-screenshot13](/01-starting-project-section-14/section14-demo/Project-14-2026-10-16-4.png)
+
+## Extracting Query Parameters via Observables
+
+Other than using Input binding to get the route parameter, I can also use the activated route object and set up a subscription to be notified about changes.
+
+So in `TasksComponent`, add `activatedRoute` this private property to set up a subscription I can use to listen to `queryParams` (which is an observable) whenever it changes:
+
+```ts
+export class TasksComponent implements OnInit {
+  userId = input.required<string>();
+  order = input<'asc' | 'desc'>();
+  private tasksService = inject(TasksService);
+  userTasks = computed(() => this.tasksService.allTasks().filter(task => task.userId === this.userId()));
+  
+  private activatedRoute = inject(ActivatedRoute);
+
+  ngOnInit(): void {
+    this.activatedRoute.queryParams.subscribe({}); // An observable of the query parameters shared by all the routes.
+  }
+}
+```
+
+Then set up the observer object with the `next` property and read the value of `order` there. Also add subscription destroy design:
+
+```ts
+export class TasksComponent implements OnInit {
+  userId = input.required<string>();
+  // order = input<'asc' | 'desc'>(); // instead of using input binding here
+  order?: 'asc' | 'desc'; // we can use queryParams observable below to get the order value and assign it to here
+  private tasksService = inject(TasksService);
+  userTasks = computed(() => this.tasksService.allTasks().filter(task => task.userId === this.userId()));
+  
+  private activatedRoute = inject(ActivatedRoute);
+  private destroyRef = inject(DestroyRef);
+
+  ngOnInit(): void {
+    const subscription = this.activatedRoute.queryParams.subscribe({
+      next: params => this.order = params['order']
+    }); // An observable of the query parameters shared by all the routes.
+
+    this.destroyRef.onDestroy(() => {
+      subscription.unsubscribe();
+    });
+  }
+}
+```
+
+Then, update the template of `TasksComponent` as now `order` is no longer a signal:
+
+```html
+<p>
+  <a routerLink="./" [queryParams]="{order: order === 'asc' ? 'desc' : 'asc'}">
+    Sort {{ order === 'asc' ? 'Descending' : 'Ascending' }}
+  </a>
+</p>
+```
+
+The UI should work the same as before.
+
+So when entering a user's task list, it starts with no order query parameter:
+
+![Project14-screenshot14](/01-starting-project-section-14/section14-demo/Project-14-2026-10-17-1.png)
+
+Then, click on `Sort Ascending`, the url becomes `http://localhost:4200/users/u1/tasks?order=asc`, and the hyperlink button becomes `Sort Descending`:
+
+![Project14-screenshot15](/01-starting-project-section-14/section14-demo/Project-14-2026-10-17-2.png)
+
+## Using Query Parameters For Data Manipulation
