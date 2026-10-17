@@ -1616,4 +1616,145 @@ Then, click on `Sort Ascending`, the url becomes `http://localhost:4200/users/u1
 
 ![Project14-screenshot15](/01-starting-project-section-14/section14-demo/Project-14-2026-10-17-2.png)
 
+### In `TasksComponent`, Why can I pass either an observer object or a single callback to `subscribe()`, to handle each value the observable emits?
+
+`subscribe()` accepts either a full observer object or just one function, and a single function is treated as the `next` handler.
+
+**Key points:**
+
+RxJS's `subscribe()` is written to accept two kinds of input. In TypeScript, this is called `function overloading`. One method, more than one allowed `shape` of argument:
+- An observer object. This can have up to three handlers: `next`, `error` and `complete`. You only need to include the ones you care about.
+- A single function. RxJS treats this function as the `next` handler. 
+
+So the two approaches would look like this:
+
+```ts
+// Option A: pass the function directly (shortest)
+const subscription = this.activatedRoute.queryParams.subscribe(params => {
+  this.order = params['order'];
+});
+
+// Option B: pass an observer object (useful if you later add error or complete)
+const subscription = this.activatedRoute.queryParams.subscribe({
+  next: params => this.order = params['order'],
+});
+```
+
+### Is `params => {...}` in Option A a callback function?
+
+Yes, to be more specific, this `arrow function` is used as a `callback` (A function you hand over to be called later by other function is a `callback`):
+
+```ts
+params => {
+  this.order = params['order'];
+}
+```
+
+Why is it a callback?
+
+- You pass it into `subscribe()`.
+- RxJS calls it each time `queryParams` emits a new value. You never call it yourself.
+
 ## Using Query Parameters For Data Manipulation
+
+Now I can start to actually start to sort the task list on the UI!
+
+First, change the `order` property from a regular one to a signal one. Give it a default value as `desc` too. Also, the `next` handler needs to update the `order` signal according to the `queryParams`:
+
+```ts
+@Component({
+  selector: 'app-tasks',
+  standalone: true,
+  templateUrl: './tasks.component.html',
+  styleUrl: './tasks.component.css',
+  imports: [TaskComponent, RouterLink],
+})
+export class TasksComponent implements OnInit {
+  userId = input.required<string>();
+  order = signal<'asc' | 'desc'>('desc'); // updated!
+  private tasksService = inject(TasksService);
+  userTasks = computed(() => this.tasksService.allTasks().filter(task => task.userId === this.userId()));
+  
+  private activatedRoute = inject(ActivatedRoute);
+  private destroyRef = inject(DestroyRef);
+
+  ngOnInit(): void {
+    const subscription = this.activatedRoute.queryParams.subscribe({
+      next: params => this.order.set(params['order']) // updated!
+    });
+
+    this.destroyRef.onDestroy(() => {
+      subscription.unsubscribe();
+    });
+  }
+}
+```
+
+Then, change the `order` in the template back to signal:
+
+```html
+<p>
+  <a routerLink="./" [queryParams]="{order: order() === 'asc' ? 'desc' : 'asc'}">
+    Sort {{ order() === 'asc' ? 'Descending' : 'Ascending' }}
+  </a>
+</p>
+```
+
+Then, the `userTasks` that computed signal needs to add `sort` function like this:
+
+```ts
+export class TasksComponent implements OnInit {
+  userId = input.required<string>();
+  order = signal<'asc' | 'desc'>('desc');
+  private tasksService = inject(TasksService);
+  userTasks = computed(() =>
+    this.tasksService
+      .allTasks()
+      .filter((task) => task.userId === this.userId())
+      .sort((a, b) => {                 // updated!
+        if (this.order() === 'desc') {
+          return a.id > b.id ? -1 : 1;  // when a.id is greater than b.id, return -1 to put a before b
+        } else {
+          return a.id < b.id ? -1 : 1;  // when a.id is less than b.id, return -1 to put a before b
+        }
+      }),
+  );
+
+  private activatedRoute = inject(ActivatedRoute);
+  private destroyRef = inject(DestroyRef);
+
+  constructor() {
+    effect(() => {
+      console.log('User tasks updated:', this.userTasks());
+      console.log('userId: ', this.userId());
+    });
+  }
+
+  ngOnInit(): void {
+    const subscription = this.activatedRoute.queryParams.subscribe({
+      next: (params) => this.order.set(params['order']),
+    });
+
+    this.destroyRef.onDestroy(() => {
+      subscription.unsubscribe();
+    });
+  }
+}
+```
+
+So on UI, if click on the `Sort Ascending`, the result is correct and the hyperlink becomes `Descending`:
+
+![Project14-screenshot16](/01-starting-project-section-14/section14-demo/Project-14-2026-10-17-3.png)
+
+If click on the `Sort Descending`, the result is correct and the hyperlink becomes `Ascending`:
+
+![Project14-screenshot17](/01-starting-project-section-14/section14-demo/Project-14-2026-10-17-4.png)
+
+### Array.prototype.sort()
+
+Reference: ![here](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/sort)
+
+- A negative value indicates that a should go before b.
+- A positive value indicates that a should go after b.
+
+The `sort()` function only understands the -1, 1, or 0 to know where to put the items.
