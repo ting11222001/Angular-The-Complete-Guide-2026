@@ -1758,3 +1758,58 @@ Reference: ![here](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Refer
 - A positive value indicates that a should go after b.
 
 The `sort()` function only understands the -1, 1, or 0 to know where to put the items.
+
+## Adding Static Data To Routes
+
+I can pass data from the routes like this.
+
+In `app.routes.ts`:
+
+```ts
+{
+  path: 'users/:userId', // <your-domain>/users/u1
+  component: UserTasksComponent,
+  children: userRoutes,
+  data: {
+      message: 'Hello!', // use this 'data' object
+  }
+},
+```
+
+Then, go to `UserTasksComponent` there are two ways I can access to that `data`.
+
+First one is to use an input (thanks to `withComponentInputBinding()` in the `app.config.ts`). So `UserTasksComponent` will receive a `message` property like this:
+
+```ts
+export class UserTasksComponent implements OnInit {
+  private activatedRoute = inject(ActivatedRoute);
+  private usersService = inject(UsersService);
+  private destroyRef = inject(DestroyRef);
+  userName = '';
+
+  // Access the static data from routes - Solution 1:
+  message = input.required<string>();
+
+  ngOnInit() {
+    console.log('this.message: ', this.message());  // print the input data, message, once this UserTasksComponent is loaded
+  }
+}
+``` 
+
+So when `http://localhost:4200/users/u1/tasks` is loaded, in the Console tab it prints `this.message:  Hello!`:
+
+![Project14-screenshot18](/01-starting-project-section-14/section14-demo/Project-14-2026-10-19-1.png)
+
+But this is too simple and just enough for static data.
+
+Next, I will need to oursource this part of data fetching - which is dynamic based on the userId in the route:
+
+```ts
+const subscription = this.activatedRoute.paramMap.subscribe({
+  next: (paramMap: ParamMap) =>
+    (this.userName =
+      this.usersService.users.find(
+        (user) => user.id === paramMap.get('userId'),
+      )?.name || ''),
+});
+```

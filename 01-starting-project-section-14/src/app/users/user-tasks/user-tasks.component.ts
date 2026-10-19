@@ -36,7 +36,11 @@ export class UserTasksComponent implements OnInit {
   private destroyRef = inject(DestroyRef);
   userName = '';
 
+  // Access the static data from routes - Solution 1:
+  message = input.required<string>();
+
   ngOnInit() {
+    console.log('this.message: ', this.message());
     console.log('this.activatedRoute: ', this.activatedRoute);
     console.log('this.activatedRoute.paramMap: ', this.activatedRoute.paramMap);
     console.log('this.activatedRoute.snapshot: ', this.activatedRoute.snapshot);

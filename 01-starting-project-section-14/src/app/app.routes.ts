@@ -14,7 +14,10 @@ export const routes: Routes = [
     {
         path: 'users/:userId', // <your-domain>/users/u1
         component: UserTasksComponent,
-        children: userRoutes
+        children: userRoutes,
+        data: {
+            message: 'Hello!',
+        }
     },
     {
         path: '**', // <your-domain>/anything-else
