@@ -1980,11 +1980,11 @@ export class UserTasksComponent implements OnInit {
   userName = '';
 
   ngOnInit() {
-    console.log('this.activatedRoute.paramMap: ', this.activatedRoute.paramMap);
-    console.log('this.activatedRoute.snapshot.params: ', this.activatedRoute.snapshot.params);
+    console.log('this.activatedRoute.paramMap: ', this.activatedRoute.paramMap); // log: an observable
+    console.log('this.activatedRoute.snapshot.params: ', this.activatedRoute.snapshot.params); // log: {userId: 'u1'}
     console.log(
       "this.activatedRoute.snapshot.paramMap.get('userId'): ",
-      this.activatedRoute.snapshot.paramMap.get('userId'),
+      this.activatedRoute.snapshot.paramMap.get('userId'), // log: u1
     );
     const subscription = this.activatedRoute.paramMap.subscribe({
       next: (paramMap: ParamMap) =>
