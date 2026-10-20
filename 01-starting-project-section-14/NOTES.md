@@ -1813,3 +1813,228 @@ const subscription = this.activatedRoute.paramMap.subscribe({
       )?.name || ''),
 });
 ```
+
+## Resolving Route-related Dynamic Data
+
+Use `resolve` property in the `app.routes.ts`.
+
+```ts
+export const routes: Routes = [
+    {
+        path: 'users/:userId', // <your-domain>/users/u1
+        component: UserTasksComponent,
+        children: userRoutes,
+        data: {
+            message: 'Hello!',
+        },
+        resolve: {} // here!
+    }
+]
+```
+
+It takes in a resolver. This resolver can be in any places in the project. I'm just learning to put it in the `UserTasksComponent`.
+
+Outside of the `UserTasksComponent` class, I added this:
+
+```ts
+export function resolveUserName() {};
+```
+
+This `resolveUserName` will be used in the `app.routes.ts` in some way later.
+
+So every time this route gets activated, this resolver function will be called and it will then receive the latest snapshot that describes this activated route.
+
+Turned out that this resolver function has to follow a specific signature e.g. it's of type `ResolveFn`:
+
+```ts
+export const resolveUserName: ResolveFn
+```
+
+And then store a function to this const and take in two parameters from angular router, `ActivatedRouteSnapshot` and `RouterStateSnapshot`:
+
+```ts
+export const resolveUserName: ResolveFn = (
+  activatedRoute: ActivatedRouteSnapshot, // here!
+  routerState: RouterStateSnapshot // here!
+) => {};
+```
+
+Then I need to return the data that should be resolved by that `resolveUserName` function.
+
+In the `UserTasksComponent`, I used `this.usersService.users` but this `resolveUserName` function is outside of the TypeScript component class.
+
+I will need to inject the `UserService` like this:
+
+```ts
+export const resolveUserName: ResolveFn<string> = (
+  activatedRoute: ActivatedRouteSnapshot,
+  routerState: RouterStateSnapshot,
+) => {
+  const usersService = inject(UsersService); // here!
+  return '';
+};
+```
+
+And this `resolveUserName` will be re-executed everytime the route parameter changes so I won't need to subscribe to it like the old way.
+
+Similar to the old way, I can now use `activatedRoute.paramMap.get('userId')` to get the url parameter:
+
+```ts
+// New:
+export const resolveUserName: ResolveFn<string> = (
+  activatedRoute: ActivatedRouteSnapshot,
+  routerState: RouterStateSnapshot,
+) => {
+  const usersService = inject(UsersService);
+  const userName =
+    usersService.users.find((user) => user.id === activatedRoute.paramMap.get('userId')) // here!
+      ?.name || '';
+  return userName;
+};
+
+// Old:
+export class UserTasksComponent implements OnInit {
+  ngOnInit() {
+    const subscription = this.activatedRoute.paramMap.subscribe({
+        next: (paramMap: ParamMap) =>
+          (this.userName =
+            this.usersService.users.find(
+              (user) => user.id === paramMap.get('userId'),
+            )?.name || ''),
+      });
+      this.destroyRef.onDestroy(() => subscription.unsubscribe());
+  }
+}
+```
+
+So that `resolveUserName` will return the `userName`. Define the shape of the return data as `string` like this: `ResolveFn<string>`.
+
+To allow a component to access the resolver function's value, thanks to `withComponentInputBinding()`, in the `app.config.ts`, that `userName` from `resolveUserName` function can be made available to that target component as an input property.
+
+And in `app.routes.ts`, set the `resolve` property (which takes an object) like the below.
+
+Note that `resolveUserName` is not executed here, so just `resolveUserName`, not `resolveUserName()`, because Angular will execute it for me:
+
+```ts
+export const routes: Routes = [
+  {
+      path: 'users/:userId',
+      component: UserTasksComponent, // here!
+      children: userRoutes,
+      data: {
+        message: 'Hello!',
+      },
+      resolve: {
+        userName: resolveUserName // here!
+      }
+  }
+]
+```
+
+I can use any key name, not just `userName`, and simply make sure it points to this `resolveUserName` resolver function.
+
+So now the value returned by that resolver function will be made available to this `UserTasksComponent` through an input with this name, `userName`.
+
+Now I can make my `UserTasksComponent` really clean like this:
+
+```ts
+export const resolveUserName: ResolveFn<string> = ( // new!
+  activatedRoute: ActivatedRouteSnapshot,
+  routerState: RouterStateSnapshot,
+) => {
+  const usersService = inject(UsersService);
+  const userName =
+    usersService.users.find((user) => user.id === activatedRoute.paramMap.get('userId'))
+      ?.name || '';
+  return userName;
+};
+
+@Component({
+  selector: 'app-user-tasks',
+  standalone: true,
+  imports: [RouterOutlet, RouterLink],
+  templateUrl: './user-tasks.component.html',
+  styleUrl: './user-tasks.component.css',
+})
+export class UserTasksComponent {
+  userName = input.required<string>();  // I can access 'userName' from the resolver using an input property
+  message = input.required<string>();
+
+}
+```
+
+Compared to the old way which required me to set up subscription myself:
+
+```ts
+@Component({
+  selector: 'app-user-tasks',
+  standalone: true,
+  imports: [RouterOutlet, RouterLink],
+  templateUrl: './user-tasks.component.html',
+  styleUrl: './user-tasks.component.css',
+})
+export class UserTasksComponent implements OnInit {
+  private activatedRoute = inject(ActivatedRoute);
+  private usersService = inject(UsersService);
+  private destroyRef = inject(DestroyRef);
+  userName = '';
+
+  ngOnInit() {
+    console.log('this.activatedRoute.paramMap: ', this.activatedRoute.paramMap);
+    console.log('this.activatedRoute.snapshot.params: ', this.activatedRoute.snapshot.params);
+    console.log(
+      "this.activatedRoute.snapshot.paramMap.get('userId'): ",
+      this.activatedRoute.snapshot.paramMap.get('userId'),
+    );
+    const subscription = this.activatedRoute.paramMap.subscribe({
+      next: (paramMap: ParamMap) =>
+        (this.userName =
+          this.usersService.users.find(
+            (user) => user.id === paramMap.get('userId'),
+          )?.name || ''),
+    });
+    this.destroyRef.onDestroy(() => subscription.unsubscribe());
+  }
+}
+```
+
+### Review `this.activatedRoute.paramMap` vs `this.activatedRoute.snapshot.params`
+
+1. `paramMap` is an observable
+
+I injected `ActivatedRoute` into `UserTasksComponent`. Its `paramMap` property is an observable, so I subscribe to it. Each time the route parameter changes, the `next` handler runs. I read the value with `paramMap.get('userId')` and use it to find the user’s name in `UsersService`. I also cleaned up the subscription with `DestroyRef.onDestroy(() => subscription.unsubscribe())`.
+
+2. `snapshot` gives plain values, not observables
+
+`this.activatedRoute` holds observables. `this.activatedRoute.snapshot` holds the actual values at that moment. I can read them directly, for example, `snapshot.params` (which gives `{ userId: 'u1' }`) or `snapshot.paramMap.get('userId')`.
+
+3. The downside of snapshot
+
+A snapshot is not reactive. If you read it in `ngOnInit` and then click from `u1` `to` u2, the value stays `u1`. That is because the component is reused and `ngOnInit` does not run again.
+
+Subscribing to `paramMap` was the better choice for UserTasksComponent, because the component is reused for different users.
+
+Back to the course.
+
+By using a resolver instead, I've successfully outsourced the data fetching work from the component to the resolver which can be quite elegant when getting my component data when using routing.
+
+Then, in the template of `UserTasksComponent`, update the `userName` to `userName()` signal:
+
+```html
+<header>
+  <h2>{{ userName() }} Tasks</h2>
+  <menu>
+    <a routerLink="tasks/new">Add Task</a>
+  </menu>
+</header>
+```
+
+So now on the UI, the user name should still be able to displayed correctly, and it's changed when I go to different user route, just that now the data is loaded with the help of the resolver.
+
+For example, go to the first user `http://localhost:4200/users/u1/tasks`:
+
+![Project14-screenshot19](/01-starting-project-section-14/section14-demo/Project-14-2026-10-20-1.png)
+
+Go to the second user `http://localhost:4200/users/u2/tasks`:
+
+![Project14-screenshot20](/01-starting-project-section-14/section14-demo/Project-14-2026-10-20-2.png)
