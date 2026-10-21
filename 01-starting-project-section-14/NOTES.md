@@ -2038,3 +2038,106 @@ For example, go to the first user `http://localhost:4200/users/u1/tasks`:
 Go to the second user `http://localhost:4200/users/u2/tasks`:
 
 ![Project14-screenshot20](/01-starting-project-section-14/section14-demo/Project-14-2026-10-20-2.png)
+
+## Accessing Route Data In Components
+
+This time I'm adding the ngOnInit back as the other way of doing this is by using the injected `ActivatedRoute`.
+
+This time I can use the `data` property of `this.activatedRoute.data`, and it kind of merges both the static and dynamic data and will give me an observable, which means that it gives me the merged data and will re-emit a value whenever the route changes and the data therefore changes.
+
+So the `app.routes.ts` here remains the same:
+
+```ts
+export const routes: Routes = [
+    {
+        path: 'users/:userId', // <your-domain>/users/u1
+        component: UserTasksComponent,
+        children: userRoutes,
+        data: {
+            message: 'Hello!',
+        },
+        resolve: {
+            userName: resolveUserName
+        }
+    },
+]
+```
+
+Then in the `UserTasksComponent` add these:
+
+```ts
+export const resolveUserName: ResolveFn<string> = ( // keep!
+  activatedRoute: ActivatedRouteSnapshot,
+  routerState: RouterStateSnapshot,
+) => {
+  const usersService = inject(UsersService);
+  const userName =
+    usersService.users.find((user) => user.id === activatedRoute.paramMap.get('userId'))
+      ?.name || '';
+  return userName;
+};
+
+@Component({
+  selector: 'app-user-tasks',
+  standalone: true,
+  imports: [RouterOutlet, RouterLink],
+  templateUrl: './user-tasks.component.html',
+  styleUrl: './user-tasks.component.css',
+})
+export class UserTasksComponent implements OnInit {
+  private activatedRoute = inject(ActivatedRoute); // added!
+
+  ngOnInit() {
+    this.activatedRoute.data.subscribe({ // added!
+      next: (data) => {
+        console.log('UserTasksComponent data:', data);
+      }
+    });
+  }
+}
+```
+
+On UI I see this object when going to an users route, `http://localhost:4200/users/u1/tasks`:
+
+```
+{
+    "message": "Hello!",
+    "userName": "Jasmine Washington"
+}
+```
+
+![Project14-screenshot21](/01-starting-project-section-14/section14-demo/Project-14-2026-10-21-1.png)
+
+And it will change everytime we change the user, like clicking on the next user, `http://localhost:4200/users/u2/tasks`:
+
+```
+{
+    "message": "Hello!",
+    "userName": "Emily Thompson"
+}
+```
+
+![Project14-screenshot22](/01-starting-project-section-14/section14-demo/Project-14-2026-10-21-2.png)
+
+Ideally I should clean up too, but here is just for a demo. The correct way with cleaning up the subscription is this (I referred to what I learned in the `TasksComponent`):
+
+```ts
+export class UserTasksComponent implements OnInit {
+  private activatedRoute = inject(ActivatedRoute);
+  private destroyRef = inject(DestroyRef);
+  ngOnInit() {
+    const subscription = this.activatedRoute.data.subscribe({
+      next: (data) => {
+        console.log('UserTasksComponent data:', data);
+      }
+    });
+    this.destroyRef.onDestroy(() => {
+      subscription.unsubscribe();
+    });
+  }
+}
+```
+
+This tutorial will keep using the input way as it was cleaner.
+
+Review: If I have `withComponentInputBinding()` in my `provideRouter(...)`, Angular already puts route data into matching inputs. Then I do not need to subscribe to data at all. Reason: fewer subscriptions means less to clean up.

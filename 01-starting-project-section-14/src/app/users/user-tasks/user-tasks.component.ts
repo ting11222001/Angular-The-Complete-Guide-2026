@@ -33,5 +33,4 @@ export const resolveUserName: ResolveFn<string> = (
 export class UserTasksComponent {
   userName = input.required<string>();
   message = input.required<string>();
-
 }
