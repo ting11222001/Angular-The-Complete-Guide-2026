@@ -1512,7 +1512,7 @@ So in the `TasksComponent` I can create an Input Signal with the same name, `ord
 ```ts
 export class TasksComponent {
   userId = input.required<string>();
-  order = input<'asc' | 'desc'>('asc'); // here I cna use automatic input binding!
+  order = input<'asc' | 'desc'>('asc'); // here I can use automatic input binding!
   private tasksService = inject(TasksService);
   userTasks = computed(() => this.tasksService.allTasks().filter(task => task.userId === this.userId()));
   constructor() {
@@ -1534,9 +1534,13 @@ So the template can now connect the `order` in the query with the input signal, 
 </p>
 ```
 
-`"{order: order() === 'asc' ? 'desc' : 'asc'}"` means: when it's set to asc, it will be set to desc. If it is undefined or desc, it will be set to asc.
+`order()` is the **current** order. The data on screen is sorted this way.
 
-`Sort {{ order() === 'asc' ? 'Descending' : 'Ascending' }}` means: this string interpolation. Based on the query param in the url, we change the display text.
+`"{order: order() === 'asc' ? 'desc' : 'asc'}"` sets the **next** order for the link. If the current order is `asc`, the link goes to `desc`. If it is `desc` or undefined, the link goes to `asc`.
+
+`Sort {{ order() === 'asc' ? 'Descending' : 'Ascending' }}` is string interpolation. The text describes **what clicking will do**, not the current order. So the text and the link target always match.
+
+Rule to remember: the link is always the opposite of what is shown now, like a light switch labelled "Turn off" when the light is on.
 
 On the UI, starts with no query parameter:
 
@@ -2141,3 +2145,114 @@ export class UserTasksComponent implements OnInit {
 This tutorial will keep using the input way as it was cleaner.
 
 Review: If I have `withComponentInputBinding()` in my `provideRouter(...)`, Angular already puts route data into matching inputs. Then I do not need to subscribe to data at all. Reason: fewer subscriptions means less to clean up.
+
+## Controlling Route Resolver Execution
+
+This time use this input + resolver approach in the `userRoutes` and its `TasksComponent`.
+
+In `users.routes.ts`, pay attention to `runGuardsAndResolvers: 'paramsOrQueryParamsChange'` and `resolveUserTasks`:
+
+```ts
+export const routes: Routes = [
+    {
+        path: '',
+        redirectTo: 'tasks',
+        pathMatch: 'full'
+    },
+    {
+        path: 'tasks', // <your-domain>/users/u1/tasks -> temporary route to show all tasks for a user
+        component: TasksComponent,
+        runGuardsAndResolvers: 'paramsOrQueryParamsChange', // this make sure resolveUserTasks will be re-executed by angular whenever the route parameter or the query parameter change
+        resolve: {
+            userTasks: resolveUserTasks
+        }
+    },
+    {
+        path: 'tasks/new', // <your-domain>/users/u1/tasks/new
+        component: NewTaskComponent
+    }
+]
+```
+
+### Why adding `runGuardsAndResolvers: 'paramsOrQueryParamsChange'`?
+
+The resolver does not run again when only the query parameter changes!
+
+By default, Angular only re-runs resolvers when the route params change (like `userId`). Changing `?order=asc` to `?order=desc` is a query param change, so `resolveUserTasks` is skipped. The tasks stay in the old order.
+
+Fix: in my user route config, add `runGuardsAndResolvers` to the route that uses the resolver, `resolveUserTasks`.
+
+Next, in `TasksComponent`, clean up the subscription way of getting tasks for each user, and use the input + resolver way instead.
+
+Note that `order` was a signal property, but now it's updated to an input property, like `userId`. Angular will then fill it from the `order` query parameter:
+
+```ts
+export const resolveUserTasks: ResolveFn<Task[]> = (
+  activatedRoute: ActivatedRouteSnapshot,
+) => {
+  const tasksService = inject(TasksService);
+  const tasks = tasksService
+      .allTasks()
+      .filter((task) => task.userId === activatedRoute.paramMap.get('userId'));
+  const order = activatedRoute.queryParamMap.get('order');
+  
+  if (order && order === 'asc') {
+    tasks.sort((a, b) => {
+      return a.id < b.id ? -1 : 1;
+    });
+  } else {
+    tasks.sort((a, b) => {
+      return a.id > b.id ? -1 : 1;
+    })
+  }
+  return tasks;
+};
+
+@Component({
+  selector: 'app-tasks',
+  standalone: true,
+  templateUrl: './tasks.component.html',
+  styleUrl: './tasks.component.css',
+  imports: [TaskComponent, RouterLink],
+})
+export class TasksComponent {
+  userTasks = input.required<Task[]>();
+  userId = input.required<string>();
+  order = input<'asc' | 'desc'>('desc'); // change from signal to input to make it reactive to query parameter changes
+
+  constructor() {
+    effect(() => {    // this is only for demo purpose
+      console.log('User tasks updated:', this.userTasks());
+      console.log('userId: ', this.userId());
+    });
+  }
+}
+```
+
+The template of `TasksComponent` is the same as before. For what `order()`, `[queryParams]` and the link text each mean, see [Extracting Query Parameters via Inputs](#extracting-query-parameters-via-inputs).
+
+Quick reminder: the link is always the opposite of what is shown now.
+
+### How the template `[queryParams]` writes to the URL
+
+When you click the link, `[queryParams]="{order: ...}"` puts `?order=asc` or `?order=desc` into the address bar. That is all it does. It does not talk to the component.
+
+#### The `order` input reads from the URL
+
+`order = input<'asc' | 'desc'>()` gets its value from the current URL. With `withComponentInputBinding()` turned on, Angular looks at the URL, finds `?order=...`, and sees that the component has an input with the same name, `order`. It then copies the value into that input.
+
+#### The full loop
+
+1. The URL is `?order=asc`.
+2. Angular reads it and sets `order()` to `'asc'`.
+3. The template uses `order()` to build the link. The link now points to `?order=desc` and says `Sort Descending`.
+4. You click. The link writes `?order=desc` into the URL.
+5. Back to step 2 with the new value.
+
+On UI now it can display the correct user name on the top left corner and the sorting looks correct, `http://localhost:4200/users/u3/tasks?order=desc`:
+
+![Project14-screenshot23](/01-starting-project-section-14/section14-demo/Project-14-2026-10-22-1.png)
+
+And `http://localhost:4200/users/u3/tasks?order=asc`:
+
+![Project14-screenshot24](/01-starting-project-section-14/section14-demo/Project-14-2026-10-22-2.png)
