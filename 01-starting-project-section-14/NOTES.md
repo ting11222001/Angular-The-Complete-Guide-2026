@@ -2256,3 +2256,114 @@ On UI now it can display the correct user name on the top left corner and the so
 And `http://localhost:4200/users/u3/tasks?order=asc`:
 
 ![Project14-screenshot24](/01-starting-project-section-14/section14-demo/Project-14-2026-10-22-2.png)
+
+## Setting & Resolving Titles
+
+I can also use resolver to set the page title up here when user navigates to different routes and this will show up in search engine results:
+
+![Project14-screenshot25](/01-starting-project-section-14/section14-demo/Project-14-2026-10-24-1.png)
+
+Angular can help with that.
+
+I can set up static title for every route I have like this:
+
+```ts
+export const routes: Routes = [
+    {
+        path: '',  // <your-domain>/
+        component: NoTaskComponent,
+        title: 'No Task Selected'  // added here!
+    },
+    {
+        path: 'users/:userId', // <your-domain>/users/u1
+        component: UserTasksComponent,
+        children: userRoutes,
+        data: {
+            message: 'Hello!',
+        },
+        resolve: {
+            userName: resolveUserName
+        }
+    },
+    {
+        path: '**', // <your-domain>/anything-else
+        component: NotFoundComponent
+    }
+]
+```
+
+So now if I go to `http://localhost:4200/` in the browser, the page title will look like this:
+
+![Project14-screenshot26](/01-starting-project-section-14/section14-demo/Project-14-2026-10-24-2.png)
+
+I can also make it dynamic, depending on some data that was loaded.
+
+For example, on `UserTasksComponent`, I can make it output the user name that was selected.
+
+Then, hover over `title` property, not only it accepts a string, but also it accepts resolver, etc.
+
+So, similar to `resolveUserName`, I can create a new resolver function, `resolveTitle`, in `UserTasksComponent` like the below:
+
+```ts
+export const resolveUserName: ResolveFn<string> = (
+  activatedRoute: ActivatedRouteSnapshot,
+  routerState: RouterStateSnapshot,
+) => {
+  const usersService = inject(UsersService);
+  const userName =
+    usersService.users.find((user) => user.id === activatedRoute.paramMap.get('userId'))
+      ?.name || '';
+  return userName;
+};
+
+export const resolveTitle: ResolveFn<string> = ( // added!
+  activatedRoute,
+  routerState,
+) => {
+  return resolveUserName(activatedRoute, routerState) + '\'s Tasks'; // Emily Thompson's Tasks
+};
+
+@Component({
+  selector: 'app-user-tasks',
+  standalone: true,
+  imports: [RouterOutlet, RouterLink],
+  templateUrl: './user-tasks.component.html',
+  styleUrl: './user-tasks.component.css',
+})
+export class UserTasksComponent {
+  userName = input.required<string>();
+  message = input.required<string>();
+}
+```
+
+And use that in my `app.routes.ts`:
+
+```ts
+export const routes: Routes = [
+    {
+        path: '',  // <your-domain>/
+        component: NoTaskComponent,
+        title: 'No Task Selected'
+    },
+    {
+        path: 'users/:userId', // <your-domain>/users/u1
+        component: UserTasksComponent,
+        children: userRoutes,
+        data: {
+            message: 'Hello!',
+        },
+        resolve: {
+            userName: resolveUserName
+        },
+        title: resolveTitle // added here!
+    },
+    {
+        path: '**', // <your-domain>/anything-else
+        component: NotFoundComponent
+    }
+]
+```
+
+Now when I go to each user's page, `http://localhost:4200/users/u2/tasks`, I can see this username in the page title:
+
+![Project14-screenshot27](/01-starting-project-section-14/section14-demo/Project-14-2026-10-24-3.png)
