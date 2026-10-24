@@ -2,7 +2,7 @@ import { Component, inject, input, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 
 import { TasksService } from '../tasks.service';
-import { Router, RouterLink } from '@angular/router';
+import { CanDeactivateFn, Router, RouterLink } from '@angular/router';
 
 @Component({
   selector: 'app-new-task',
@@ -33,4 +33,13 @@ export class NewTaskComponent {
       replaceUrl: true,
     });
   }
+}
+
+// if user never entered any data, then always allow navigation away
+export const canLeaveEditPage: CanDeactivateFn<NewTaskComponent> = (component) => {
+  if (component.enteredTitle() || component.enteredSummary() || component.enteredDate()) {
+    // call this built in method by the browser
+    return window.confirm('Are you sure you want to leave? All your entered data will be lost!'); // this will return true or false based on the user's choice
+  };
+  return true; // return true to allow navigation (if return false, then it prevents navigation)
 }

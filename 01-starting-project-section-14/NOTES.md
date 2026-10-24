@@ -2437,3 +2437,109 @@ So now on UI when I click on different user tabs, it's by random blocking my acc
 
 ![Project14-screenshot28](/01-starting-project-section-14/section14-demo/Project-14-2026-10-24-4.png)
 
+## Making Sense of The CanDeactivate Guard
+
+`canDeactivate`: trigger to decide if an user is allowed to leave a page or not.
+
+`<NewTaskComponent>` tells `CanDeactivateFn` that the `component` that is being deactivated is of type `NewTaskComponent`. This is important because it allows us to access the properties and methods of the `NewTaskComponent` class within the `canLeaveEditPage` function., like now `canLeaveEditPage` can access the `enteredTitle` in the `NewTaskComponent`.
+
+There are other input parameters, other than `component`, that I can pass in to a `CanDeactivateFn` function. Just hover over `CanDeactivateFn` in the VS code to see the hint.
+
+Final code of `NewTaskComponent`:
+
+```ts
+@Component({
+  selector: 'app-new-task',
+  standalone: true,
+  imports: [FormsModule, RouterLink],
+  templateUrl: './new-task.component.html',
+  styleUrl: './new-task.component.css',
+})
+export class NewTaskComponent {
+  userId = input.required<string>();
+  enteredTitle = signal('');
+  enteredSummary = signal('');
+  enteredDate = signal('');
+  private tasksService = inject(TasksService);
+  private router = inject(Router);
+
+  onSubmit() {
+    this.tasksService.addTask(
+      {
+        title: this.enteredTitle(),
+        summary: this.enteredSummary(),
+        date: this.enteredDate(),
+      },
+      this.userId()
+    );
+    
+    this.router.navigate(['/users', this.userId(), 'tasks'], {
+      replaceUrl: true,
+    });
+  }
+}
+
+// if user never entered any data, then always allow navigation away
+export const canLeaveEditPage: CanDeactivateFn<NewTaskComponent> = (component) => {
+  if (component.enteredTitle() || component.enteredSummary() || component.enteredDate()) {
+    // call this built in method by the browser
+    return window.confirm('Are you sure you want to leave? All your entered data will be lost!'); // this will return true or false based on the user's choice
+  };
+  return true; // return true to allow navigation (if return false, then it prevents navigation)
+}
+```
+
+In `users.routes.ts`, I can add this `canLeaveEditPage` to this `NewTaskComponent` route:
+
+```ts
+export const routes: Routes = [
+    {
+        path: '',
+        redirectTo: 'tasks',
+        pathMatch: 'full'
+    },
+    {
+        path: 'tasks', // <your-domain>/users/u1/tasks
+        component: TasksComponent,
+        runGuardsAndResolvers: 'paramsOrQueryParamsChange', // make sure resolveUserTasks will be re-executed by angular whenever the route parameter or the query parameter change
+        resolve: {
+            userTasks: resolveUserTasks
+        }
+    },
+    {
+        path: 'tasks/new', // <your-domain>/users/u1/tasks/new
+        component: NewTaskComponent,
+        canDeactivate: [canLeaveEditPage] // added! Angular will execute it, so I only need to point at it here
+    }
+]
+```
+
+So now on UI, if I entered something on this new task screen, and then try to navigate away by clicking on other users' tabs, it will show this confirmation dialog:
+
+![Project14-screenshot29](/01-starting-project-section-14/section14-demo/Project-14-2026-10-24-5.png)
+
+Once I hit 'OK', the `canDeactivateFn` will return `true`, then I can leave the screen. If I hit `Cancel`, the `canDeactivateFn` will return `false`, then I get blocked and stay on this new task screen.
+
+Note that I've commented out the practice of `canMatch` in the `app.routes.ts`,  so I won't be randomly blocked by going to other users` tabs anymore:
+
+```ts
+export const routes: Routes = [
+  ...
+    {
+        path: 'users/:userId', // <your-domain>/users/u1
+        component: UserTasksComponent,
+        children: userRoutes,
+        // canMatch: [dummyCanmMatch], // commented!
+        data: {
+            message: 'Hello!',
+        },
+        resolve: {
+            userName: resolveUserName
+        },
+        title: resolveTitle
+    },
+  ...
+]
+```
+
+## Improving The CanDeactivate Logic

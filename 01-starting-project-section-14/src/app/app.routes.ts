@@ -4,6 +4,7 @@ import { resolveTitle, resolveUserName, UserTasksComponent } from "./users/user-
 import { NotFoundComponent } from "./not-found/not-found.component";
 import { routes as userRoutes } from "./users/users.routes"; // use an alias to avoid name collision with the routes variable in this file
 import { inject } from '@angular/core';
+import { canLeaveEditPage } from "./tasks/new-task/new-task.component";
 
 const dummyCanmMatch: CanMatchFn = (route, segments) => { // route is the route I'm trying to match and segments is an array of URL segments that are matched by the route
     const router = inject(Router);
@@ -26,7 +27,7 @@ export const routes: Routes = [
         path: 'users/:userId', // <your-domain>/users/u1
         component: UserTasksComponent,
         children: userRoutes,
-        canMatch: [dummyCanmMatch], // added! This is only for demo purpose, to show how canMatch works. Angular will call this function for me, so I don't need to execute here i.e. no need to dummyCanMatch() here. Angular will call this function for me, so I don't need to execute here i.e. no need to dummyCanMatch() here.
+        // canMatch: [dummyCanmMatch], // added! This is only for demo purpose, to show how canMatch works. Angular will call this function for me, so I don't need to execute here i.e. no need to dummyCanMatch() here. Angular will call this function for me, so I don't need to execute here i.e. no need to dummyCanMatch() here.
         data: {
             message: 'Hello!',
         },
@@ -37,6 +38,6 @@ export const routes: Routes = [
     },
     {
         path: '**', // <your-domain>/anything-else
-        component: NotFoundComponent
+        component: NotFoundComponent,
     }
 ]
