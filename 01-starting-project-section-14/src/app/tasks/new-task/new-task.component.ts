@@ -16,6 +16,7 @@ export class NewTaskComponent {
   enteredTitle = signal('');
   enteredSummary = signal('');
   enteredDate = signal('');
+  submitted = signal(false);
   private tasksService = inject(TasksService);
   private router = inject(Router);
 
@@ -28,6 +29,7 @@ export class NewTaskComponent {
       },
       this.userId()
     );
+    this.submitted.set(true);
     
     this.router.navigate(['/users', this.userId(), 'tasks'], {
       replaceUrl: true,
@@ -35,11 +37,14 @@ export class NewTaskComponent {
   }
 }
 
-// if user never entered any data, then always allow navigation away
 export const canLeaveEditPage: CanDeactivateFn<NewTaskComponent> = (component) => {
+  // So the user won't be blocked when he hits the Create button
+  if (component.submitted()) {
+    return true;
+  }
+
   if (component.enteredTitle() || component.enteredSummary() || component.enteredDate()) {
-    // call this built in method by the browser
-    return window.confirm('Are you sure you want to leave? All your entered data will be lost!'); // this will return true or false based on the user's choice
+    return window.confirm('Are you sure you want to leave? All your entered data will be lost!');
   };
-  return true; // return true to allow navigation (if return false, then it prevents navigation)
+  return true;
 }

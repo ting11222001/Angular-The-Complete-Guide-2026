@@ -2543,3 +2543,19 @@ export const routes: Routes = [
 ```
 
 ## Improving The CanDeactivate Logic
+
+But now if I just create a new task after entering values and then hit `Create`, it will show this confirmation dialog always:
+
+![Project14-screenshot30](/01-starting-project-section-14/section14-demo/Project-14-2026-10-24-6.png)
+
+Ideally, this confirmation dialog should only appear when we've entered some data into the form, and then clicked 'Cancel' or clicked the back button.
+
+So let's update ``.
+
+So now if I click `Cancel` or the Back button, then the confirmation dialog will pop up:
+
+![Project14-screenshot31](/01-starting-project-section-14/section14-demo/Project-14-2026-10-24-7.png)
+
+If I click `Create`, then I can leave the page and see the newly created task:
+
+![Project14-screenshot32](/01-starting-project-section-14/section14-demo/Project-14-2026-10-24-8.png)
