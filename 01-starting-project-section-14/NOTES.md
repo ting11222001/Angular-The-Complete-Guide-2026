@@ -2367,3 +2367,73 @@ export const routes: Routes = [
 Now when I go to each user's page, `http://localhost:4200/users/u2/tasks`, I can see this username in the page title:
 
 ![Project14-screenshot27](/01-starting-project-section-14/section14-demo/Project-14-2026-10-24-3.png)
+
+## Introducing Route Guards
+
+It's a way that I can check if a navigation action should be allowed or not, bascially controlling access to a route.
+
+`canMatch`: is more modern and versatile. triggered to identify if the currently entered path matching a route or not.
+`canActivate`: triggered AFTER Angular identifies a matching for the currently active path but BEFORE the component has been loaded.
+`canActivateChild`: can be used when I need a guard on the child components.
+
+These properties can take an array of guard functions.
+
+For example, I can set up a dummy guard, `dummyCanMatch` with `canMatch` property in `app.routes.ts`:
+
+`dummyCanmMatch` is of type `CanMatchFn`, which takes in `route` and `segments`.
+
+`route` is the route I'm trying to match and `segments` is an array of URL segments that are matched by the route.
+
+A `CanMatchFn` can return a boolean value to indicate whether the route can be matched or not. 
+
+It can also return a `RedirectCommand` to redirect user to another route to avoid breaking the app if access denied. 
+
+For the `RedirectCommand`, I need to pass in an url to `router` of type `Router`, and it will be converted to an url tree object.
+
+In the `routes` below, add `dummyCanMatch` this function as `canMatch: [dummyCanmMatch]`.
+
+Note that Angular will call this function for me, so I don't need to execute here i.e. no need to `dummyCanMatch()` here.
+
+Final code of `app.routes.ts`:
+
+```ts
+// This is only for demo purpose, to show how canMatch works
+const dummyCanmMatch: CanMatchFn = (route, segments) => { // added!
+    const router = inject(Router);
+    const shouldGetAccess = Math.random();
+    if (shouldGetAccess < 0.5) { // so 50% go to `/unauthorized`, 50% pass
+        return true;
+    }
+    return new RedirectCommand(router.parseUrl('/unauthorized'));
+}; 
+
+export const routes: Routes = [
+    {
+        path: '',  // <your-domain>/
+        component: NoTaskComponent,
+        title: 'No Task Selected'
+    },
+    {
+        path: 'users/:userId', // <your-domain>/users/u1
+        component: UserTasksComponent,
+        children: userRoutes,
+        canMatch: [dummyCanmMatch], // added!
+        data: {
+            message: 'Hello!',
+        },
+        resolve: {
+            userName: resolveUserName
+        },
+        title: resolveTitle
+    },
+    {
+        path: '**', // <your-domain>/anything-else
+        component: NotFoundComponent
+    }
+]
+```
+
+So now on UI when I click on different user tabs, it's by random blocking my access and redirect me to `http://localhost:4200/unauthorized` like this:
+
+![Project14-screenshot28](/01-starting-project-section-14/section14-demo/Project-14-2026-10-24-4.png)
+
