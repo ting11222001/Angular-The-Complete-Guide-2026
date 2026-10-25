@@ -2559,3 +2559,150 @@ So now if I click `Cancel` or the Back button, then the confirmation dialog will
 If I click `Create`, then I can leave the page and see the newly created task:
 
 ![Project14-screenshot32](/01-starting-project-section-14/section14-demo/Project-14-2026-10-24-8.png)
+
+## Reloading Pages via the Angular Router & Configuring Programmatic Navigation
+
+Currently there's an issue - when a task is clicked 'complete', it should be gone from the UI, but now I have to reload the page manually to see it's gone.
+
+It's because when `TaskComponent` and its `onComplete()` is triggered, the `resolveUserTasks` resolver of the `TasksComponent` does not run again itself.
+
+Remember that it's the `resolveUserTasks` resolver that loads the user tasks and then made the tasks available for `TasksComponent` through this `userTasks` input:
+
+```ts
+export const resolveUserTasks: ResolveFn<Task[]> = (
+  activatedRoute: ActivatedRouteSnapshot,
+) => {
+  const tasksService = inject(TasksService);
+  const tasks = tasksService
+      .allTasks()
+      .filter((task) => task.userId === activatedRoute.paramMap.get('userId'));
+  const order = activatedRoute.queryParamMap.get('order');
+  
+  if (order && order === 'asc') {
+    tasks.sort((a, b) => {
+      return a.id < b.id ? -1 : 1;
+    });
+  } else {
+    tasks.sort((a, b) => {
+      return a.id > b.id ? -1 : 1;
+    })
+  }
+  return tasks;
+};
+
+@Component({
+  selector: 'app-tasks',
+  standalone: true,
+  templateUrl: './tasks.component.html',
+  styleUrl: './tasks.component.css',
+  imports: [TaskComponent, RouterLink],
+})
+export class TasksComponent {
+  userTasks = input.required<Task[]>();
+  userId = input.required<string>();
+  order = input<'asc' | 'desc'>('desc'); // change from signal to input to make it reactive to query parameter changes
+
+  constructor() {
+    effect(() => {    // this is only for demo purpose
+      console.log('User tasks updated:', this.userTasks());
+      console.log('userId: ', this.userId());
+    });
+  }
+}
+```
+
+So if the `resolveUserTasks` resolver does not run again, this input, ``userTasks = input.required<Task[]>();`, will be holding the old list of tasks.
+
+What I can do is to add a navigation action in the `TaskComponent` > `onComplete()`:
+
+```ts
+@Component({
+  selector: 'app-task',
+  standalone: true,
+  templateUrl: './task.component.html',
+  styleUrl: './task.component.css',
+  imports: [DatePipe, CardComponent],
+})
+export class TaskComponent {
+  task = input.required<Task>();
+  private tasksService = inject(TasksService);
+  private router = inject(Router);  // added!
+  private activatedRoute = inject(ActivatedRoute); // added!
+
+  onComplete() {
+    this.tasksService.removeTask(this.task().id);
+    this.router.navigate(['./'], {      // added!
+      relativeTo: this.activatedRoute,  // explicitly tell Angular to navigate relative to the current route, so that it will not navigate to the root route
+      onSameUrlNavigation: 'reload'     // tell Angular to reload the page as if we're coming from a different route
+    });
+  }
+}
+```
+
+Then, in the `users.routes.ts`, change the route configuration of `TasksComponent` > `runGuardsAndResolvers` to `always`. This makes sure Angular will run this resolveUserTasks again as neither the path params nor the the query params are changing in this case:
+
+```ts
+export const routes: Routes = [
+    {
+        path: '',
+        redirectTo: 'tasks',
+        pathMatch: 'full'
+    },
+    {
+        path: 'tasks', // <your-domain>/users/u1/tasks
+        component: TasksComponent,
+        runGuardsAndResolvers: 'always', // updated!
+        resolve: {
+            userTasks: resolveUserTasks
+        }
+    },
+    {
+        path: 'tasks/new', // <your-domain>/users/u1/tasks/new
+        component: NewTaskComponent,
+        canDeactivate: [canLeaveEditPage]
+    }
+]
+```
+
+So now on the UI once I click 'complete' on an user's task, the task card will disappear right away.
+ 
+But what if now I click the sorting first and then click 'complete' on a task?
+
+The sorting's query param is actually deleted from the url.
+
+For example - `http://localhost:4200/users/u3/tasks?order=asc` becomes `http://localhost:4200/users/u3/tasks` once I click 'complete' on the newest task - that task is gone from the UI but the url is now not having any `order` query param.
+
+So I should set this `queryParamsHandling` to `preserve` like this:
+
+```ts
+@Component({
+  selector: 'app-task',
+  standalone: true,
+  templateUrl: './task.component.html',
+  styleUrl: './task.component.css',
+  imports: [DatePipe, CardComponent],
+})
+export class TaskComponent {
+  task = input.required<Task>();
+  private tasksService = inject(TasksService);
+  private router = inject(Router);
+  private activatedRoute = inject(ActivatedRoute);
+
+  onComplete() {
+    this.tasksService.removeTask(this.task().id);
+    this.router.navigate(['./'], {
+      relativeTo: this.activatedRoute, // explicitly tell Angular to navigate relative to the current route, so that it will not navigate to the root route
+      onSameUrlNavigation: 'reload', // tell Angular to reload the page as if we're coming from a different route
+      queryParamsHandling: 'preserve' // added!
+    });
+  }
+}
+```
+
+So now I go to `http://localhost:4200/users/u3/tasks` and add one new task.
+
+Then click 'Sort Ascending' so that the url becomes `http://localhost:4200/users/u3/tasks?order=asc`.
+
+Then click 'complete' of it. Now the route is reloaded but the url stays as same as before i.e. `http://localhost:4200/users/u3/tasks?order=asc`:
+
+![Project14-screenshot33](/01-starting-project-section-14/section14-demo/Project-14-2026-10-25-1.png)
