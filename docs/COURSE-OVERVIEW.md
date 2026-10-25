@@ -145,7 +145,7 @@ Next, I will do section 14 with a new branch, `app-easy-task-routing-v2`.
 
 ## Section 14: Routing & Building Multi-page Single Page Applications
 
-Last update: Oct 13, 2026.
+Last update: Oct 25, 2026.
 
 I started doing this from Aug 29, 2026 onwards until the video No. 281 on Sep 8. 
 
@@ -158,6 +158,8 @@ Back to this section 14, I need to create a new branch out of the `main` branch.
 It will be `app-easy-task-routing-v2`.
 
 I just got back to where I left with according to NOTES.md in the section 14's project folder on Oct 13, 2026.
+
+On Oct 25, 2026 I finally finished this course module too.
 
 ## Section 15: Code Splitting & Deferrable Views
 
