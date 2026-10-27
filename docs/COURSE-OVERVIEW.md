@@ -179,17 +179,17 @@ Last update: Aug 5, 2026.
 
 I will skip it for now.
 
-## Angular < 16 chunck
+## Section 18 to Section 35 are all about Angular < 16
 
-Last update: Aug 5, 2026.
+Last update: Oct 27, 2026.
 
 I will skip them for now.
 
 ## Section 36: Authentication & Route Protection in Angular
 
-Last update: Aug 5, 2026.
+Last update: Oct 27, 2026.
 
-I will skip it for now.
+I will skip it for now. Maybe Later.
 
 ## Section 37: Dynamic Components [Angular < 16]
 
